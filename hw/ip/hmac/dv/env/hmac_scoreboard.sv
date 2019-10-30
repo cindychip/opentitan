@@ -31,7 +31,7 @@ class hmac_scoreboard extends cip_base_scoreboard #(.CFG_T (hmac_env_cfg),
 
   virtual task process_tl_access(tl_seq_item item, tl_channels_e channel = DataChannel);
     uvm_reg csr;
-    bit     do_read_check           = 1'b1;
+    bit     do_read_check           = 1'b0;
     bit     do_cycle_accurate_check = 1'b1;
     bit     write                   = item.is_write();
     uvm_reg_addr_t csr_addr         = get_normalized_addr(item.a_addr);
@@ -101,7 +101,12 @@ class hmac_scoreboard extends cip_base_scoreboard #(.CFG_T (hmac_env_cfg),
           "cfg": begin
             if (cfg.en_cov) cov.cfg_cg.sample(item.a_data);
             sha_en = item.a_data[ShaEn];
-            if (!sha_en) predict_digest(msg_q);
+            if (!sha_en) begin
+              predict_digest(msg_q);
+              hmac_wr_cnt = 0;
+              hmac_rd_cnt = 0;
+              flush();
+            end
           end
           "wipe_secret", "key0", "key1", "key2", "key3", "key4", "key5", "key6", "key7",
           "intr_enable", "intr_state": begin
@@ -284,6 +289,9 @@ class hmac_scoreboard extends cip_base_scoreboard #(.CFG_T (hmac_env_cfg),
             begin : reset_key_padding
               wait(under_reset);
             end
+            begin : disable_sha
+              wait(!sha_en);
+            end
           join_any
           disable fork;
           key_processed = 0;
@@ -309,6 +317,9 @@ class hmac_scoreboard extends cip_base_scoreboard #(.CFG_T (hmac_env_cfg),
             end
             begin : reset_hmac_fifo_rd
               wait(under_reset);
+            end
+            begin : disable_sha
+              wait(!sha_en);
             end
           join_any
           disable fork;

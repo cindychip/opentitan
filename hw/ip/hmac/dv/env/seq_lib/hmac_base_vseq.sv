@@ -89,8 +89,8 @@ class hmac_base_vseq extends cip_base_vseq #(.CFG_T               (hmac_env_cfg)
   endtask
 
   // keep all the config values, but enable sha_en
-  virtual task sha_enable();
-    ral.cfg.sha_en.set(1'b1);
+  virtual task sha_enable(bit enable = 1'b1);
+    ral.cfg.sha_en.set(enable);
     csr_update(.csr(ral.cfg));
   endtask
 

@@ -442,7 +442,7 @@ module hmac (
   `ASSERT(ValidWriteAssert, msg_fifo_req |-> !in_process, clk_i, !rst_ni)
 
   // `hash_process` shall be toggle and paired with `hash_start`.
-  `ASSERT(ValidHashStartAssert, hash_start |-> !initiated, clk_i, !rst_ni)
+  //`ASSERT(ValidHashStartAssert, hash_start |-> !initiated, clk_i, !rst_ni)
   `ASSERT(ValidHashProcessAssert, reg_hash_process |-> initiated, clk_i, !rst_ni)
 
   // between `hash_done` and `hash_start`, message FIFO should be empty
@@ -451,9 +451,9 @@ module hmac (
           clk_i, !rst_ni)
 
   // hmac_en should be modified only when the logic is Idle
-  `ASSERT(ValidHmacEnConditionAssert,
-          hmac_en != $past(hmac_en) |-> !in_process && !initiated,
-          clk_i, !rst_ni)
+  //`ASSERT(ValidHmacEnConditionAssert,
+  //        hmac_en != $past(hmac_en) |-> !in_process && !initiated,
+  //        clk_i, !rst_ni)
 
   // All outputs should be known value after reset
   `ASSERT_KNOWN(IntrHmacDoneOKnown, intr_hmac_done_o, clk_i, !rst_ni)

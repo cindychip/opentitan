@@ -15,7 +15,7 @@ Documentation | [SPEC_COMPLETE][]     | Done        | [HMAC Spec][]
 Documentation | [CSR_DEFINED][]       | Done        |
 RTL           | [CLKRST_CONNECTED][]  | Done        |
 RTL           | [IP_TOP][]            | Done        |
-RTL           | [IP_INSTANTIABLE][]      | Done        |
+RTL           | [IP_INSTANTIABLE][]   | Done        |
 RTL           | [MEM_INSTANCED_80][]  | Done        |
 RTL           | [FUNC_IMPLEMENTED][]  | Done        |
 RTL           | [ASSERT_KNOWN_ADDED][]| Done        |
@@ -199,18 +199,18 @@ Documentation | [DESIGN_DELTAS_CAPTURED_V3][]     | N/A         |
 Testbench     | [ALL_TODOS_RESOLVED][]            | Done        | [issue #385][] item 3 not related / Resolved: [pr #749][]
 Tests         | [X_PROP_ANALYSIS_COMPLETED][]     | Waived      |
 Regression    | [NIGHTLY_REGRESSION_AT_100][]     | Done        |
-Coverage      | [CODE_COVERAGE_AT_100][]          | In Progress | [#820][] pending. prim_fifo_sync revised [common_cov_excl.el][] HMAC excl to be added
+Coverage      | [CODE_COVERAGE_AT_100][]          | Done        | [pr #945][]. prim_fifo_sync revised [hmac_cov_excl.el][]
 Coverage      | [FUNCTIONAL_COVERAGE_AT_100][]    | Done        |
 Issues        | [NO_ISSUES_PENDING][]             | Done        |
 Code Quality  | [NO_TOOL_WARNINGS_THROWN][]       | Done        | Xcelium warnings on C code
 Integration   | [PRE_VERIFIED_SUB_MODULES_V3][]   | N/A         |
-Review        | Reviewer(s)                       | Not Started | @eunchan @sjgitty @sriyerg
-Review        | Signoff date                      | Not Started |
+Review        | Reviewer(s)                       | Done        | @eunchan @sjgitty @sriyerg
+Review        | Signoff date                      | Done        |
 
 [issue #385]: https://github.com/loWRISC/opentitan/issues/385
 [pr #749]:    https://github.com/loWRISC/opentitan/pull/749
-[#820]:       https://github.com/loWRISC/opentitan/pull/820
-[common_cov_excl.el]: https://github.com/lowRISC/opentitan/blob/9dff09b6c57f4962d67f5f64f8e69ac9bea6885c/hw/dv/tools/vcs/common_cov_excl.el
+[pr #945]:    https://github.com/loWRISC/opentitan/pull/945
+[hmac_cov_excl.el]: https://github.com/cindychip/opentitan/1684f68e382c3c997ef66847b0c7b0037fea3428/hw/ip/hmac/dv/cov/hmac_cov_excl.el
 
 [DESIGN_DELTAS_CAPTURED_V3]:    {{<relref "/doc/project/checklist.md#design-deltas-captured-v3" >}}
 [ALL_TODOS_RESOLVED]:           {{<relref "/doc/project/checklist.md#all-todos-resolved" >}}

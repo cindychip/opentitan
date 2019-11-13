@@ -10,7 +10,8 @@ clear -all
 # Disabling the warning
 # "parameter declared inside package XXX shall be treated as localparam".
 set_message -disable VERI-2418
-
+check_cov -init -model {branch statement functional} \
+-enable_prove_based_proof_core
 #-------------------------------------------------------------------------
 # read design
 #-------------------------------------------------------------------------
@@ -21,7 +22,7 @@ analyze -sv09 \
   +define+FPV_ON
 
 elaborate -top $env(FPV_TOP)
-
+check_assumptions -show -dead_end
 #-------------------------------------------------------------------------
 # specify clock(s) and reset(s)
 #-------------------------------------------------------------------------

@@ -10,8 +10,7 @@ clear -all
 # Disabling the warning
 # "parameter declared inside package XXX shall be treated as localparam".
 set_message -disable VERI-2418
-check_cov -init -model {branch statement functional} \
--enable_prove_based_proof_core
+
 #-------------------------------------------------------------------------
 # read design
 #-------------------------------------------------------------------------
@@ -22,7 +21,10 @@ analyze -sv09 \
   +define+FPV_ON
 
 elaborate -top $env(FPV_TOP)
-check_assumptions -show -dead_end
+
+check_assumptions -conflict
+check_assumptions -live
+check_assumptions -dead_end
 #-------------------------------------------------------------------------
 # specify clock(s) and reset(s)
 #-------------------------------------------------------------------------
@@ -53,8 +55,7 @@ if {$env(FPV_TOP) == "rv_dm"} {
 } elseif {$env(FPV_TOP) == "top_earlgrey"} {
   clock clk_i -both_edges
   clock jtag_tck_i
-  clock cio_spi_device_sck_p2d_i
-  reset -expr {!rst_ni !jtag_trst_ni cio_spi_device_csb_p2d_i}
+  reset -expr {!rst_ni !jtag_trst_ni}
 } elseif {$env(FPV_TOP) == "xbar_main"} {
   clock clk_main_i -both_edges
   reset -expr {!rst_main_ni}
@@ -155,6 +156,7 @@ set_proofgrid_per_engine_max_local_jobs 16
 #-------------------------------------------------------------------------
 # prove all assertions & report
 #-------------------------------------------------------------------------
+# time limit set to 2 hours
 get_reset_info -x_value -with_reset_pin
-prove -all
+prove -all -time_limit 120m
 report

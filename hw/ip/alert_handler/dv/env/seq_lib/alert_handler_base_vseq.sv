@@ -25,8 +25,10 @@ class alert_handler_base_vseq extends cip_base_vseq #(
   endtask
 
   // setup basic alert_handler features
-  virtual task alert_handler_init();
-    // `uvm_error(`gfn, "FIXME")
+  virtual task alert_handler_init(bit intr_en = 1'b1);
+    bit [TL_DW-1:0] interrupts;
+    interrupts = (1 << ClassA | 1 << ClassB | 1 << ClassC | 1 << ClassD);
+    cfg_interrupts(.interrups(interrupts), enable(1'b1));
   endtask
 
 endclass : alert_handler_base_vseq

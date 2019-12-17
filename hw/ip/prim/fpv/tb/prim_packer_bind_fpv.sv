@@ -1,19 +1,12 @@
 // Copyright lowRISC contributors.
 // Licensed under the Apache License, Version 2.0, see LICENSE for details.
 // SPDX-License-Identifier: Apache-2.0
+//
 
-module hmac_bind;
+module prim_packer_bind_fpv;
 
-  bind hmac tlul_assert #(
-    .EndpointType("Device")
-  ) tlul_assert_device (
-    .clk_i,
-    .rst_ni,
-    .h2d  (tl_i),
-    .d2h  (tl_o)
-  );
 
-  bind hmac.u_packer prim_packer_assert_fpv #(
+  bind prim_packer prim_packer_assert_fpv #(
     .InW(InW),
     .OutW(OutW)
   ) i_prim_packer_assert_fpv (
@@ -30,4 +23,6 @@ module hmac_bind;
     .flush_i,
     .flush_done_o
   );
-endmodule
+
+
+endmodule : prim_packer_bind_fpv

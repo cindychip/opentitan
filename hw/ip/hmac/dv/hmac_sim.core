@@ -8,6 +8,7 @@ filesets:
   files_rtl:
     depend:
       - lowrisc:ip:hmac:0.1
+      - lowrisc:fpv:prim_packer_fpv
     files:
       - tb/hmac_bind.sv
     file_type: systemVerilogSource

@@ -6,6 +6,7 @@ class alert_handler_virtual_sequencer extends cip_base_virtual_sequencer #(
     .CFG_T(alert_handler_env_cfg),
     .COV_T(alert_handler_env_cov)
   );
+
   alert_sequencer alert_host_seqr_h[];
 
   `uvm_component_utils(alert_handler_virtual_sequencer)

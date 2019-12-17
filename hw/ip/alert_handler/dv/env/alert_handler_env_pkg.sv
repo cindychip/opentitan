@@ -28,6 +28,13 @@ package alert_handler_env_pkg;
   typedef virtual pins_if #(NUM_MAX_ESC_SEV) esc_en_vif;
   typedef virtual pins_if #(1) entropy_vif;
 
+  typedef enum {
+    ClassA,
+    ClassB,
+    ClassC,
+    ClassD
+  } alert_handler_intr_e;
+
   // functions
 
   // package sources

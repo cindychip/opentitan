@@ -17,6 +17,7 @@ filesets:
       - lowrisc:dv:alert_handler_test
     files:
       - tb/tb.sv
+      - tb/alert_macros.svh: {is_include_file: true}
     file_type: systemVerilogSource
 
 targets:

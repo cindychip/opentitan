@@ -12,6 +12,7 @@ class alert_handler_sanity_vseq extends alert_handler_base_vseq;
 
   // temp disable
   constraint only_enable_intr_class_a_c {
+
     intr_en inside {0, 1};
   }
 

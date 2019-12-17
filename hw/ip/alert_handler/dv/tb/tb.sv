@@ -12,6 +12,7 @@ module tb;
   // macro includes
   `include "uvm_macros.svh"
   `include "dv_macros.svh"
+  `include "alert_macros.svh"
 
   wire clk, rst_n;
   wire [NUM_MAX_INTERRUPTS-1:0] interrupts;
@@ -50,20 +51,20 @@ module tb;
 
   // main dut
   alert_handler dut (
-    .clk_i                ( clk           ),
-    .rst_ni               ( rst_n         ),
-    .tl_i                 ( tl_if.h2d     ),
-    .tl_o                 ( tl_if.d2h     ),
-    .intr_classa_o        ( interrupts[0] ),
-    .intr_classb_o        ( interrupts[1] ),
-    .intr_classc_o        ( interrupts[2] ),
-    .intr_classd_o        ( interrupts[3] ),
-    .crashdump_o          (               ),
-    .entropy_i            ( entropy       ),
-    .alert_rx_o           ( alert_rx      ),
-    .alert_tx_i           ( alert_tx      ),
-    .esc_rx_i             ( esc_rx        ),
-    .esc_tx_o             ( esc_tx        )
+    .clk_i                ( clk                ),
+    .rst_ni               ( rst_n              ),
+    .tl_i                 ( tl_if.h2d          ),
+    .tl_o                 ( tl_if.d2h          ),
+    .intr_classa_o        ( interrupts[ClassA] ),
+    .intr_classb_o        ( interrupts[ClassB] ),
+    .intr_classc_o        ( interrupts[ClassC] ),
+    .intr_classd_o        ( interrupts[ClassD] ),
+    .crashdump_o          (                    ),
+    .entropy_i            ( entropy            ),
+    .alert_rx_o           ( alert_rx           ),
+    .alert_tx_i           ( alert_tx           ),
+    .esc_rx_i             ( esc_rx             ),
+    .esc_tx_o             ( esc_tx             )
   );
 
   // escalation receiver duts

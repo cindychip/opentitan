@@ -8,6 +8,7 @@ class alert_handler_virtual_sequencer extends cip_base_virtual_sequencer #(
   );
 
   alert_sequencer alert_host_seqr_h[];
+  alert_sequencer esc_device_seqr_h[];
 
   `uvm_component_utils(alert_handler_virtual_sequencer)
 

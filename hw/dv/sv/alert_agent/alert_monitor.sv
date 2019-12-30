@@ -7,24 +7,13 @@
 // Alert sender receiver interface monitor
 // ---------------------------------------------
 
-class alert_monitor extends dv_base_monitor#(
-    .ITEM_T (alert_seq_item),
-    .CFG_T  (alert_agent_cfg),
-    .COV_T  (alert_agent_cov)
-  );
+class alert_monitor extends alert_esc_base_monitor;
 
   `uvm_component_utils(alert_monitor)
 
   bit under_ping_rsp;
 
-  uvm_analysis_port #(alert_seq_item) alert_port;
-
   `uvm_component_new
-
-  function void build_phase(uvm_phase phase);
-    super.build_phase(phase);
-    alert_port = new("alert_port", this);
-  endfunction : build_phase
 
   //TODO: currently only support sync mode
   //TODO: add support for signal int err and reset
@@ -48,7 +37,7 @@ class alert_monitor extends dv_base_monitor#(
     alert_seq_item req;
     bit            ping_p;
     forever @(cfg.vif.monitor_cb) begin
-      if (ping_p != cfg.vif.monitor_cb.alert_rx.ping_p) begin
+      if (ping_p != cfg.vif.get_ping_p()) begin
         phase.raise_objection(this);
         under_ping_rsp = 1;
         req = alert_seq_item::type_id::create("req");
@@ -82,7 +71,7 @@ class alert_monitor extends dv_base_monitor#(
         phase.drop_objection(this);
         under_ping_rsp = 0;
       end
-      ping_p = cfg.vif.monitor_cb.alert_rx.ping_p;
+      ping_p = cfg.vif.get_ping_p();
     end
   endtask : ping_thread
 
@@ -90,7 +79,7 @@ class alert_monitor extends dv_base_monitor#(
     alert_seq_item req;
     bit            alert_p;
     forever @(cfg.vif.monitor_cb) begin
-      if (!alert_p && cfg.vif.monitor_cb.alert_tx.alert_p === 1'b1 && !under_ping_rsp) begin
+      if (!alert_p && cfg.vif.get_alert_p() === 1'b1 && !under_ping_rsp) begin
         phase.raise_objection(this);
         req = alert_seq_item::type_id::create("req");
         req.alert_type = AlertTrans;
@@ -123,7 +112,7 @@ class alert_monitor extends dv_base_monitor#(
         alert_port.write(req);
         phase.drop_objection(this);
       end
-      alert_p = cfg.vif.monitor_cb.alert_tx.alert_p;
+      alert_p = cfg.vif.get_alert_p();
     end
   endtask : alert_thread
 

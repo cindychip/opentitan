@@ -7,11 +7,9 @@
 // ---------------------------------------------
 class alert_agent extends dv_base_agent#(
     .CFG_T           (alert_agent_cfg),
-    .DRIVER_T        (alert_base_driver),
-    .HOST_DRIVER_T   (alert_sender_driver),
-    .DEVICE_DRIVER_T (alert_receiver_driver),
+    .DRIVER_T        (alert_esc_base_driver),
     .SEQUENCER_T     (alert_sequencer),
-    .MONITOR_T       (alert_monitor),
+    .MONITOR_T       (alert_esc_base_monitor),
     .COV_T           (alert_agent_cov)
   );
 
@@ -21,9 +19,24 @@ class alert_agent extends dv_base_agent#(
 
   function void build_phase(uvm_phase phase);
     super.build_phase(phase);
-    // get alert_if handle
     if (!uvm_config_db#(virtual alert_if)::get(this, "", "vif", cfg.vif)) begin
       `uvm_fatal(`gfn, "failed to get alert_if handle from uvm_config_db")
+    end
+
+    if (cfg.is_alert) begin
+      alert_esc_base_monitor::type_id::set_type_override(alert_monitor::get_type());
+      if (cfg.if_mode == Host) begin
+        alert_esc_base_driver::type_id::set_type_override(alert_sender_driver::get_type());
+      end else begin
+        alert_esc_base_driver::type_id::set_type_override(alert_receiver_driver::get_type());
+      end
+    end else begin
+      alert_esc_base_monitor::type_id::set_type_override(esc_monitor::get_type());
+      if (cfg.if_mode == Host) begin
+        alert_esc_base_driver::type_id::set_type_override(esc_sender_driver::get_type());
+      end else begin
+        alert_esc_base_driver::type_id::set_type_override(esc_receiver_driver::get_type());
+      end
     end
   endfunction
 

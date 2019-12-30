@@ -6,9 +6,7 @@
 // ---------------------------------------------
 // Alert_handler sender driver
 // ---------------------------------------------
-class alert_sender_driver extends alert_base_driver;
-  alert_seq_item alert_q[$];
-  alert_seq_item ping_q[$];
+class alert_sender_driver extends alert_esc_base_driver;
 
   `uvm_component_utils(alert_sender_driver)
 
@@ -21,30 +19,18 @@ class alert_sender_driver extends alert_base_driver;
   // alert_sender drive responses by sending the alert_p and alert_n
   // one alert sent by sequence driving the alert_send signal
   // another alert sent by responding to the ping signal
-  virtual task get_and_drive();
+  virtual task drive_req();
     fork
-      get_req();
       send_alert();
       rsp_ping();
     join_none
-  endtask : get_and_drive
-
-  virtual task get_req();
-    forever begin
-      alert_seq_item req_clone;
-      seq_item_port.get(req);
-      $cast(req_clone, req.clone());
-      req_clone.set_id_info(req);
-      if (req.alert_send) alert_q.push_back(req_clone);
-      if (req.ping_rsp)   ping_q.push_back(req_clone);
-    end
-  endtask : get_req
+  endtask : drive_req
 
   virtual task send_alert();
     forever begin
       alert_seq_item req, rsp;
-      wait(alert_q.size() > 0);
-      req = alert_q.pop_front();
+      wait(alert_send_q.size() > 0);
+      req = alert_send_q.pop_front();
       $cast(rsp, req.clone());
       rsp.set_id_info(req);
       `uvm_info(`gfn,
@@ -63,8 +49,8 @@ class alert_sender_driver extends alert_base_driver;
   virtual task rsp_ping();
     forever begin
       alert_seq_item req, rsp;
-      wait(ping_q.size() > 0);
-      req = ping_q.pop_front();
+      wait(ping_rsp_q.size() > 0);
+      req = ping_rsp_q.pop_front();
       $cast(rsp, req.clone());
       rsp.set_id_info(req);
       `uvm_info(`gfn,

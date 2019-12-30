@@ -16,6 +16,8 @@ class alert_seq_item extends uvm_sequence_item;
   rand bit ping_send;
   rand bit ping_int_err;
   rand bit timeout;
+  rand bit esc_rsp;
+  rand bit esc_int_err;
 
   // for alert_monitor
   rand alert_type_e      alert_type;
@@ -34,11 +36,19 @@ class alert_seq_item extends uvm_sequence_item;
     soft ack_stable  dist {1 :/ 5, [2:10] :/ 5};
   }
 
+  // if agent is alert mode, cannot send any esc_rsp signal
+  // if agent is esc mode, cannot send any alert related signals
+  constraint alert_mode_c {
+    esc_rsp == 1 -> !alert_send && !alert_rsp && !ping_rsp && !ping_send;
+    alert_send || alert_rsp || ping_rsp || ping_send -> !esc_rsp;
+  }
+
   `uvm_object_utils_begin(alert_seq_item)
     `uvm_field_int (alert_send,    UVM_DEFAULT)
     `uvm_field_int (alert_int_err, UVM_DEFAULT)
     `uvm_field_int (alert_rsp,     UVM_DEFAULT)
     `uvm_field_int (ping_rsp,      UVM_DEFAULT)
+    `uvm_field_int (esc_rsp,       UVM_DEFAULT)
     `uvm_field_int (ack_int_err,   UVM_DEFAULT)
     `uvm_field_int (ping_send,     UVM_DEFAULT)
     `uvm_field_int (ping_int_err,  UVM_DEFAULT)

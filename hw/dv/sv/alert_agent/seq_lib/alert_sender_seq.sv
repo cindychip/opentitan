@@ -19,7 +19,7 @@ class alert_sender_seq extends dv_base_seq #(
   `uvm_object_new
 
   task body();
-    `uvm_info(`gfn, $sformatf("starting alert sender transfer"), UVM_HIGH)
+    `uvm_info(`gfn, $sformatf("starting alert sender transfer"), UVM_LOW)
     req = REQ::type_id::create("req");
     start_item(req);
     `DV_CHECK_RANDOMIZE_WITH_FATAL(req,

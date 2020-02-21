@@ -10,6 +10,7 @@ class alert_handler_sanity_vseq extends alert_handler_base_vseq;
 
   rand bit [NUM_ALERT_HANDLER_CLASSES-1:0] intr_en;
   rand bit [alert_pkg::NAlerts-1:0]        alert_trigger;
+  rand bit [alert_pkg::NAlerts-1:0]        alert_int_err;
   rand bit [alert_pkg::NAlerts-1:0]        alert_en;
   rand bit [alert_pkg::NAlerts*2-1:0]      alert_class_map;
   rand int max_phase_cyc;
@@ -54,7 +55,7 @@ class alert_handler_sanity_vseq extends alert_handler_base_vseq;
                                max_wait_phases_cyc : (max_phase_cyc * NUM_ESC_PHASES);
       end
 
-      drive_alert(alert_trigger);
+      drive_alert(alert_trigger, alert_int_err);
 
       // read and check interrupt
       if (alert_en & alert_trigger) begin

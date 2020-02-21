@@ -60,7 +60,8 @@ class alert_handler_base_vseq extends cip_base_vseq #(
     if (class_en[3]) `RAND_WRITE_CLASS_CTRL(d)
   endtask
 
-  virtual task drive_alert(bit[alert_pkg::NAlerts-1:0] alert_trigger);
+  virtual task drive_alert(bit[alert_pkg::NAlerts-1:0] alert_trigger,
+                           bit[alert_pkg::NAlerts-1:0] alert_int_err);
     fork
       begin : isolation_fork
         foreach (alert_trigger[i]) begin
@@ -70,7 +71,7 @@ class alert_handler_base_vseq extends cip_base_vseq #(
               begin
                 alert_sender_seq alert_seq;
                 `uvm_create_on(alert_seq, p_sequencer.alert_host_seqr_h[index]);
-                `DV_CHECK_RANDOMIZE_FATAL(alert_seq)
+                `DV_CHECK_RANDOMIZE_WITH_FATAL(alert_seq, int_err == alert_int_err[index];)
                 `uvm_send(alert_seq)
               end
             join_none

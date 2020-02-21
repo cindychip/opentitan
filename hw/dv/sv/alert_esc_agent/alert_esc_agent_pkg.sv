@@ -34,6 +34,11 @@ package alert_esc_agent_pkg;
     EscIntFail
   } esc_handshake_e;
 
+  typedef enum {
+    BothHigh,
+    BothLow
+  } alert_sig_int_err_e;
+
   // macro includes
   `include "uvm_macros.svh"
   `include "dv_macros.svh"

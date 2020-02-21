@@ -69,16 +69,16 @@ class alert_sender_driver extends alert_esc_base_driver;
 
   virtual task set_alert_pins(alert_esc_seq_item req);
     int unsigned alert_delay, ack_delay;
-    alert_delay = (cfg.use_seq_item_alert_delay) ? req.alert_delay :
-        $urandom_range(cfg.alert_delay_max, cfg.alert_delay_min);
-    ack_delay = (cfg.use_seq_item_ack_delay) ? req.ack_delay :
-        $urandom_range(cfg.ack_delay_max, cfg.ack_delay_min);
-    repeat (alert_delay) @(cfg.vif.sender_cb);
     if (!req.int_err) begin
+      alert_delay = (cfg.use_seq_item_alert_delay) ? req.alert_delay :
+          $urandom_range(cfg.alert_delay_max, cfg.alert_delay_min);
+      ack_delay = (cfg.use_seq_item_ack_delay) ? req.ack_delay :
+          $urandom_range(cfg.ack_delay_max, cfg.ack_delay_min);
+
+      repeat (alert_delay) @(cfg.vif.sender_cb);
       @(cfg.vif.sender_cb);
       repeat (alert_delay) @(cfg.vif.sender_cb);
       cfg.vif.set_alert();
-      // TODO: add alert fail and differential signal fail scenarios
       fork
         begin : alert_timeout
           repeat (cfg.ping_timeout_cycle) @(cfg.vif.sender_cb);
@@ -92,7 +92,17 @@ class alert_sender_driver extends alert_esc_base_driver;
       join_any
       disable fork;
     end else begin
-    // TODO: differential signal fail
+      @(cfg.vif.sender_cb);
+      case (req.int_err_scenario)
+        BothHigh: cfg.vif.set_alert_p();
+        BothLow:  cfg.vif.reset_alert_n();
+        default: begin
+          `uvm_fatal(`gfn, $sformatf("int_err_scenario unknown: %s", req.int_err_scenario.name));
+        end
+      endcase
+      @(cfg.vif.sender_cb);
+      repeat (req.int_err_cyc) @(cfg.vif.sender_cb);
+      cfg.vif.reset_alert();
     end
   endtask : set_alert_pins
 

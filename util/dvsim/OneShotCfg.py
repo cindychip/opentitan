@@ -7,11 +7,12 @@ Class describing a one-shot build configuration object
 
 import logging as log
 import sys
+from collections import OrderedDict
 
-from .Deploy import *
-from .FlowCfg import FlowCfg
-from .Modes import *
-from .utils import *
+from Deploy import *
+from FlowCfg import FlowCfg
+from Modes import *
+from utils import *
 
 
 class OneShotCfg(FlowCfg):
@@ -52,8 +53,8 @@ class OneShotCfg(FlowCfg):
         self.regressions = []
 
         # Flow results
-        self.result = {}
-        self.result_summary = {}
+        self.result = OrderedDict()
+        self.result_summary = OrderedDict()
 
         self.dry_run = args.dry_run
 
@@ -107,8 +108,8 @@ class OneShotCfg(FlowCfg):
             # tests and regressions, only if not a master cfg obj
             self._create_objects()
 
-            # Post init checks
-            self.__post_init__()
+        # Post init checks
+        self.__post_init__()
 
     def __post_init__(self):
         # Run some post init checks
@@ -122,7 +123,7 @@ class OneShotCfg(FlowCfg):
 
     # Purge the output directories. This operates on self.
     def _purge(self):
-        if self.scratch_path is not "":
+        if self.scratch_path:
             try:
                 log.info("Purging scratch path %s", self.scratch_path)
                 os.system("/bin/rm -rf " + self.scratch_path)

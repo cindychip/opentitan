@@ -184,7 +184,7 @@ module hmac
   always_ff @(posedge clk_i or negedge rst_ni) begin
     if (!rst_ni) begin
       fifo_empty_q <= '1; // By default, it is empty
-    end else begin
+    end else if (!hmac_fifo_wsel) begin
       fifo_empty_q <= fifo_empty;
     end
   end

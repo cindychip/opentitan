@@ -315,7 +315,7 @@ class hmac_base_vseq extends cip_base_vseq #(.CFG_T               (hmac_env_cfg)
     if (ral.intr_enable.hmac_err.get_mirrored_value()) begin
       check_interrupts(.interrupts((1 << HmacErr)), .check_set(1'b1));
     end else begin
-      csr_rd_check(.ptr(ral.intr_state), .compare_value(1 << HmacErr));
+      csr_rd_check(.ptr(ral.intr_state.hmac_err), .compare_value(1));
       csr_wr(.csr(ral.intr_state), .value(1 << HmacErr));
     end
     csr_rd(ral.err_code, error_code);

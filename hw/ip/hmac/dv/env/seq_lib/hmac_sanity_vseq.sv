@@ -103,11 +103,10 @@ class hmac_sanity_vseq extends hmac_base_vseq;
         // msg stream in finished, start hash
         trigger_process();
 
-        // fifo_full intr can be triggered at the latest two cycle after process
-        // example: current fifo_depth=(14 words + 2 bytes), then wr last 4 bytes, design will
-        // process the 15th word then trigger intr_fifo_full
-        cfg.clk_rst_vif.wait_clks(2);
-        //clear_intr_fifo_full();
+        // TODO: temp solution as after hmac_process, scb hmac_empty has one cycle mismatch with
+        // RTL
+        if (hmac_en) cfg.clk_rst_vif.wait_clks(HMAC_KEY_PROCESS_CYCLES);
+        else cfg.clk_rst_vif.wait_clks(HMAC_MSG_PROCESS_CYCLES);
 
         // wait for interrupt to assert, check status and clear it
         if (intr_hmac_done_en) begin

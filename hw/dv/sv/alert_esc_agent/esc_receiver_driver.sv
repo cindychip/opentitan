@@ -73,9 +73,11 @@ class esc_receiver_driver extends alert_esc_base_driver;
           end else begin
             cfg.vif.wait_esc();
             @(cfg.vif.receiver_cb);
-            while (cfg.vif.get_esc() === 1'b1) toggle_resp_signal();
-            if (is_ping) toggle_resp_signal();
+            while (cfg.vif.get_esc() === 1'b1) toggle_resp_signal(req.int_err);
+            if (is_ping) toggle_resp_signal(req.int_err);
             is_ping = 0;
+            $display("sig int err %0b", req.int_err);
+            if (req.int_err) cfg.vif.reset_resp();
           end
           `uvm_info(`gfn,
               $sformatf("finished sending receiver item esc_rsp=%0b int_fail=%0b",
@@ -86,10 +88,24 @@ class esc_receiver_driver extends alert_esc_base_driver;
     end // end forever
   endtask : rsp_escalator
 
-  task toggle_resp_signal();
-    cfg.vif.set_resp();
+  task toggle_resp_signal(bit int_err);
+    if (!int_err) begin
+      cfg.vif.set_resp();
+    end else begin
+      randcase
+        1: cfg.vif.set_resp();
+        1: cfg.vif.reset_resp();
+      endcase
+    end
     @(cfg.vif.receiver_cb);
-    cfg.vif.reset_resp();
+    if (!int_err) begin
+      cfg.vif.reset_resp();
+    end else begin
+      randcase
+        1: cfg.vif.set_resp();
+        1: cfg.vif.reset_resp();
+      endcase
+    end
     @(cfg.vif.receiver_cb);
   endtask : toggle_resp_signal
 

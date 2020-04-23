@@ -56,7 +56,8 @@ class alert_handler_sanity_vseq extends alert_handler_base_vseq;
   }
 
   task body();
-    run_esc_rsp_seq_nonblocking();
+    `DV_CHECK_RANDOMIZE_FATAL(this)
+    run_esc_rsp_seq_nonblocking(esc_int_err);
     run_alert_ping_rsp_seq_nonblocking();
     for (int i = 1; i <= num_trans; i++) begin
       `DV_CHECK_RANDOMIZE_FATAL(this)
@@ -80,7 +81,7 @@ class alert_handler_sanity_vseq extends alert_handler_base_vseq;
       if (do_esc_intr_timeout) wr_intr_timeout_cycle(intr_timeout_cyc);
       wr_class_accum_threshold(accum_thresh);
 
-      if (esc_int_err) drive_esc_resp(esc_int_err);
+      //if (esc_int_err) drive_esc_resp(esc_int_err);
       // drive alert
       drive_alert(alert_trigger, alert_int_err);
 
@@ -95,7 +96,7 @@ class alert_handler_sanity_vseq extends alert_handler_base_vseq;
       end
 
       // read and check interrupt
-      clear_all_interrupts();
+      read_interrupt();
 
       wait_alert_handshake_done();
       fork
@@ -105,7 +106,7 @@ class alert_handler_sanity_vseq extends alert_handler_base_vseq;
               wait_esc_handshake_done(max_wait_phases_cyc);
             end
             begin
-              cfg.clk_rst_vif.wait_clks($urandom_range(0, max_wait_phases_cyc*2));
+              cfg.clk_rst_vif.wait_clks($urandom_range(max_wait_phases_cyc+1, max_wait_phases_cyc*2));
               do_clr_esc = 1;
             end
           join_any

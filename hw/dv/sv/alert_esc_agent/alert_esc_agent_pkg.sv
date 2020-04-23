@@ -32,7 +32,9 @@ package alert_esc_agent_pkg;
     EscRespReceived,
     EscComplete,
     EscRespComplete,
-    EscIntFail
+    EscIntFail,
+    EscRespHi,
+    EscRespLo
   } esc_handshake_e;
 
   typedef enum bit [1:0] {
@@ -43,9 +45,8 @@ package alert_esc_agent_pkg;
   } alert_sig_int_err_e;
 
   typedef enum {
-    NoResponse,
     RandResponse,
-    SigPNIntErr
+    RespIntErr
   } resp_sig_int_err_e;
 
   // macro includes

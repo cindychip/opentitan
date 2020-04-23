@@ -329,7 +329,7 @@ class cip_base_vseq #(type RAL_T               = dv_base_reg_block,
     foreach (intr_state_csrs[i]) begin
       csr_rd(.ptr(intr_state_csrs[i]), .value(data));
       if (data != 0) begin
-        `uvm_info(`gtn, $sformatf("Clearing %0s", intr_state_csrs[i].get_name()), UVM_HIGH)
+        `uvm_info(`gtn, $sformatf("Clearing %0s", intr_state_csrs[i].get_name()), UVM_LOW)
         csr_wr(.csr(intr_state_csrs[i]), .value(data));
         csr_rd(.ptr(intr_state_csrs[i]), .value(data));
         if (!cfg.under_reset) `DV_CHECK_EQ(data, 0)

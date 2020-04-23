@@ -109,16 +109,12 @@ class alert_handler_scoreboard extends cip_base_scoreboard #(
         forever begin
           alert_esc_seq_item act_item;
           esc_fifo[index].get(act_item);
-          // once esc signal is received
-          if (act_item.alert_esc_type == AlertEscSigTrans &&
-              act_item.esc_handshake_sta == EscIntFail) begin
-            `uvm_error(`gfn, "should not have int fail here")
-          end
           if (act_item.alert_esc_type == AlertEscSigTrans &&
               act_item.esc_handshake_sta == EscRespComplete) begin
             check_esc_signal(act_item.sig_cycle_cnt, index);
-          end
-          if (act_item.alert_esc_type == AlertEscIntFail) begin
+          end else if (act_item.alert_esc_type == AlertEscIntFail ||
+              (act_item.alert_esc_type == AlertEscSigTrans &&
+               act_item.esc_handshake_sta == EscIntFail)) begin
             bit [TL_DW-1:0] loc_alert_en = ral.loc_alert_en.get_mirrored_value();
             if (loc_alert_en[LocalEscIntFail]) process_alert_sig(index, 1, LocalEscIntFail);
           end
@@ -176,7 +172,7 @@ class alert_handler_scoreboard extends cip_base_scoreboard #(
       void'(reg_accum_cnts[class_i].predict(accum_cnt));
     end
     `uvm_info(`gfn, $sformatf("alert_accum: class=%0d, alert_cnt=%0d, thresh=%0d, under_esc=%0b",
-        class_i, accum_cnt, accum_thresh, under_esc_classes[class_i]), UVM_DEBUG)
+        class_i, accum_cnt, accum_thresh, under_esc_classes[class_i]), UVM_LOW)
     if (accum_cnt > accum_thresh && !under_esc_classes[class_i]) predict_esc(class_i);
   endfunction
 

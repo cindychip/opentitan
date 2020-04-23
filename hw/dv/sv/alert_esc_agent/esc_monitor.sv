@@ -16,7 +16,6 @@ class esc_monitor extends alert_esc_base_monitor;
   bit under_esc_ping;
 
   //TODO: currently only support sync mode
-  //TODO: add support for signal int err and reset
   virtual task run_phase(uvm_phase phase);
     fork
       esc_thread(phase);
@@ -56,7 +55,7 @@ class esc_monitor extends alert_esc_base_monitor;
   endtask : esc_ping_detector
 
   virtual task esc_thread(uvm_phase phase);
-    alert_esc_seq_item req;
+    alert_esc_seq_item req, req_clone;
     logic esc_p = cfg.vif.get_esc();
     forever @(cfg.vif.monitor_cb) begin
       if (!esc_p && cfg.vif.get_esc() === 1'b1) begin
@@ -70,21 +69,22 @@ class esc_monitor extends alert_esc_base_monitor;
           alert_esc_port.write(req);
         end else begin
           req.alert_esc_type = AlertEscSigTrans;
-          req.esc_handshake_sta = EscReceived;
+          req.esc_handshake_sta = EscRespHi;
 
           req.sig_cycle_cnt++;
-          check_esc_resp_high(req);
+          check_esc_resp(req);
           while (cfg.vif.get_esc() === 1) begin
-            check_esc_resp_low(req);
-            if (cfg.vif.get_esc() === 1) check_esc_resp_high(req);
+            check_esc_resp(req);
           end
-          if (req.esc_handshake_sta != EscIntFail) begin
-            req.esc_handshake_sta = EscRespComplete;
+          if (req.sig_cycle_cnt > 1) begin
+            check_esc_resp(req, 0);
           end
+          $cast(req_clone, req.clone());
+          req_clone.esc_handshake_sta = EscRespComplete;
+          alert_esc_port.write(req_clone);
         end
         `uvm_info("esc_monitor", $sformatf("[%s]: handshake status is %s",
             req.alert_esc_type.name(), req.esc_handshake_sta.name()), UVM_HIGH)
-        alert_esc_port.write(req);
         phase.drop_objection(this, $sformatf("%s objection dropped", `gfn));
       end
       esc_p = cfg.vif.get_esc();
@@ -96,7 +96,7 @@ class esc_monitor extends alert_esc_base_monitor;
     forever @(cfg.vif.monitor_cb) begin
       while (cfg.vif.get_esc() === 1'b0 && !under_esc_ping) begin
         @(cfg.vif.monitor_cb);
-        if (cfg.vif.get_resp_p() === 1'b1 && cfg.vif.get_resp_n() == 1'b0) begin
+        if (cfg.vif.get_resp_p() === 1'b1 && cfg.vif.get_resp_n() === 1'b0) begin
           req = alert_esc_seq_item::type_id::create("req");
           req.alert_esc_type = AlertEscIntFail;
           alert_esc_port.write(req);
@@ -106,15 +106,59 @@ class esc_monitor extends alert_esc_base_monitor;
   endtask : int_fail_thread
 
   virtual task check_esc_resp_high(alert_esc_seq_item req);
-    if (cfg.vif.get_resp_p() != 1) req.esc_handshake_sta = EscIntFail;
+    if (cfg.vif.get_resp_p() != 1) begin
+      req.esc_handshake_sta = EscIntFail;
+      alert_esc_port.write(req);
+    end else begin
+      req.esc_handshake_sta = EscReceived;
+    end
     @(cfg.vif.monitor_cb);
     if (cfg.vif.get_esc() === 1) req.sig_cycle_cnt++;
   endtask : check_esc_resp_high
 
   virtual task check_esc_resp_low(alert_esc_seq_item req);
-    if (cfg.vif.get_resp_p() != 0) req.esc_handshake_sta = EscIntFail;
+    esc_handshake_e curr_type = req.esc_handshake_sta;
+    if (cfg.vif.get_resp_p() != 0) begin
+      req.esc_handshake_sta = EscIntFail;
+      alert_esc_port.write(req);
+    end else begin
+      req.esc_handshake_sta = EscReceived;
+    end
     @(cfg.vif.monitor_cb);
+    if (curr_type == EscIntFail) req.esc_handshake_sta = EscReceived;
     if (cfg.vif.get_esc() === 1) req.sig_cycle_cnt++;
   endtask : check_esc_resp_low
 
+  virtual task check_esc_resp(alert_esc_seq_item req, bit wait_clk = 1);
+    esc_handshake_e curr_type = req.esc_handshake_sta;
+    // from initial stage
+    if (curr_type inside {EscReceived, EscIntFail}) begin
+      if (cfg.vif.get_resp_p() != 0) begin
+        alert_esc_seq_item req_clone;
+        $cast(req_clone, req.clone());
+        req_clone.esc_handshake_sta = EscIntFail;
+        alert_esc_port.write(req_clone);
+      end
+      req.esc_handshake_sta = EscRespHi;
+    end else if (curr_type == EscRespHi) begin
+      if (cfg.vif.get_resp_p() != 1) begin
+        req.esc_handshake_sta = EscIntFail;
+        alert_esc_port.write(req);
+      end else begin
+        req.esc_handshake_sta = EscRespLo;
+      end
+    end else if (curr_type == EscRespLo) begin
+      if (cfg.vif.get_resp_p() != 0) begin
+        req.esc_handshake_sta = EscIntFail;
+        alert_esc_port.write(req);
+      end else begin
+        req.esc_handshake_sta = EscRespHi;
+      end
+    end
+
+    if (wait_clk) begin
+      @(cfg.vif.monitor_cb);
+      if (cfg.vif.get_esc() === 1) req.sig_cycle_cnt++;
+    end
+  endtask
 endclass : esc_monitor

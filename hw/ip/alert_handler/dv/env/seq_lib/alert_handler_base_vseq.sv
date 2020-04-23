@@ -114,6 +114,12 @@ class alert_handler_base_vseq extends cip_base_vseq #(
     csr_wr(.csr(ral.classd_clr), .value(1));
   endtask
 
+  virtual task read_interrupt();
+    bit [TL_DW-1:0] intr;
+    csr_rd(.ptr(ral.intr_state), .value(intr));
+    csr_wr(.csr(ral.intr_state), .value(intr));
+  endtask
+
   virtual task read_alert_cause();
     bit [TL_DW-1:0] alert_cause;
     // checking for this CSR is done in scb
@@ -166,14 +172,15 @@ class alert_handler_base_vseq extends cip_base_vseq #(
   endtask
 
   // This sequence will automatically response to all escalation ping and esc responses
-  virtual task run_esc_rsp_seq_nonblocking();
+  virtual task run_esc_rsp_seq_nonblocking(bit [alert_pkg::N_ESC_SEV-1:0] esc_int_err);
     foreach (cfg.esc_device_cfg[i]) begin
       automatic int index = i;
       fork
         forever begin
+          bit int_err = esc_int_err[index] ? $urandom_range(0, 1) : 0;
           esc_receiver_esc_rsp_seq esc_seq =
               esc_receiver_esc_rsp_seq::type_id::create("esc_seq");
-          `DV_CHECK_RANDOMIZE_WITH_FATAL(esc_seq, int_err == 0;);
+          `DV_CHECK_RANDOMIZE_WITH_FATAL(esc_seq, int_err == int_err;);
           esc_seq.start(p_sequencer.esc_device_seqr_h[index]);
         end
       join_none

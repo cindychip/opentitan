@@ -48,9 +48,10 @@ class alert_esc_seq_item extends uvm_sequence_item;
   }
 
   // TODO: temp constraint, will support soon
+  // TODO: support np signal int error
   constraint sig_int_err_c {
     alert_int_err_type == NoAlertBeforeAfterIntFail;
-    resp_int_err_type == RandResponse;
+    resp_int_err_type == RespIntErr;
   }
 
   `uvm_object_utils_begin(alert_esc_seq_item)

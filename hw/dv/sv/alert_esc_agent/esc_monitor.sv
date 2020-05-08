@@ -23,7 +23,7 @@ class esc_monitor extends alert_esc_base_monitor;
       reset_thread();
       unexpected_resp_thread();
       sig_int_fail_thread();
-      esc_ping_detector();
+      //esc_ping_detector();
     join_none
   endtask : run_phase
 
@@ -69,22 +69,43 @@ class esc_monitor extends alert_esc_base_monitor;
         else req.esc_handshake_sta = EscRespHi;
         @(cfg.vif.monitor_cb);
         if (cfg.vif.get_esc() === 1'b0) begin
+          int ping_cnter = 1;
+          under_esc_ping = 1;
           req.alert_esc_type = AlertEscPingTrans;
-          // TODO: send again when ping resp fail
-          alert_esc_port.write(req);
-        end else begin
-          req.alert_esc_type = AlertEscSigTrans;
+          check_ping_resp(req);
+          do begin
+            @(cfg.vif.monitor_cb);
+            check_ping_resp(req);
+            //$display("next expected state is %s", req.esc_handshake_sta.name());
+            ping_cnter ++;
+          end
+          while (req.esc_handshake_sta != EscRespComplete && ping_cnter < cfg.ping_timeout_cycle && !cfg.vif.get_esc());
 
+          if (!cfg.vif.get_esc()) begin
+            if (ping_cnter == cfg.ping_timeout_cycle && req.esc_handshake_sta != EscRespComplete) begin
+              alert_esc_seq_item req_clone;
+              $cast(req_clone, req.clone());
+              req_clone.timeout = 1;
+              alert_esc_port.write(req_clone);
+              //$display("%time here exit due to timeout", $realtime);
+              @(cfg.vif.monitor_cb);
+              check_ping_resp(req);
+            end
+          end
+          under_esc_ping = 0;
+        end
+        if (cfg.vif.get_esc() === 1'b1) begin
+          req.alert_esc_type = AlertEscSigTrans;
           req.sig_cycle_cnt++;
           check_esc_resp(req);
           while (cfg.vif.get_esc() === 1) check_esc_resp(req);
-          if (req.sig_cycle_cnt > 1) check_esc_resp(req, 0);
+          check_esc_resp(req, 0);
           $cast(req_clone, req.clone());
           req_clone.esc_handshake_sta = EscRespComplete;
           alert_esc_port.write(req_clone);
         end
-        `uvm_info("esc_monitor", $sformatf("[%s]: handshake status is %s",
-            req.alert_esc_type.name(), req.esc_handshake_sta.name()), UVM_HIGH)
+        `uvm_info("esc_monitor", $sformatf("[%s]: handshake status is %s, timeout=%0b",
+            req.alert_esc_type.name(), req.esc_handshake_sta.name(), req.timeout), UVM_HIGH)
         phase.drop_objection(this, $sformatf("%s objection dropped", `gfn));
       end
       esc_p = cfg.vif.get_esc();
@@ -153,4 +174,46 @@ class esc_monitor extends alert_esc_base_monitor;
     end
   endtask : check_esc_resp
 
+  virtual task check_ping_resp(alert_esc_seq_item req, bit do_wait_clk = 1);
+    if (req.esc_handshake_sta inside {EscIntFail, EscReceived}) begin
+      if (cfg.vif.get_resp_p() !== 0) begin
+        alert_esc_seq_item req_clone;
+        $cast(req_clone, req.clone());
+        req_clone.esc_handshake_sta = EscIntFail;
+        alert_esc_port.write(req_clone);
+      end
+      req.esc_handshake_sta = EscRespHi;
+    end else if (req.esc_handshake_sta == EscRespHi) begin
+      if (cfg.vif.get_resp_p() !== 1) begin
+        req.esc_handshake_sta = EscIntFail;
+        alert_esc_port.write(req);
+        //$display("%time here write integrity fail", $realtime);
+      end else begin
+        req.esc_handshake_sta = EscRespLo;
+      end
+    end else if (req.esc_handshake_sta == EscRespLo) begin
+      if (cfg.vif.get_resp_p() !== 0) begin
+        req.esc_handshake_sta = EscIntFail;
+        alert_esc_port.write(req);
+      end else begin
+        req.esc_handshake_sta = EscRespPing2;
+      end
+    end else if (req.esc_handshake_sta == EscRespPing2) begin
+      if (cfg.vif.get_resp_p() !== 1) begin
+        req.esc_handshake_sta = EscIntFail;
+        alert_esc_port.write(req);
+      end else begin
+        req.esc_handshake_sta = EscRespPing3;
+      end
+    end else if (req.esc_handshake_sta == EscRespPing3) begin
+      if (cfg.vif.get_resp_p() !== 0) begin
+        req.esc_handshake_sta = EscIntFail;
+        alert_esc_port.write(req);
+      end else begin
+        req.esc_handshake_sta = EscRespComplete;
+      end
+    end
+    if (cfg.vif.get_resp_p() == cfg.vif.get_resp_n()) req.esc_handshake_sta = EscIntFail;
+    //if (do_wait_clk) @(cfg.vif.monitor_cb);
+  endtask
 endclass : esc_monitor

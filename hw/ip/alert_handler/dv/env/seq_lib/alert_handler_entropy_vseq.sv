@@ -25,7 +25,7 @@ class alert_handler_entropy_vseq extends alert_handler_sanity_vseq;
 
   // temp constraint, should take off when support ping_int_err
   constraint sig_int_c {
-    esc_int_err == 0;
+    esc_int_err == '1;
   }
 
   constraint lock_bit_c {
@@ -34,6 +34,7 @@ class alert_handler_entropy_vseq extends alert_handler_sanity_vseq;
 
   function void pre_randomize();
     this.enable_classa_only_c.constraint_mode(0);
+    this.sig_int_c.constraint_mode(0);
     // set verbosity high to avoid printing out too much information
     verbosity = UVM_HIGH;
   endfunction

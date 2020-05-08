@@ -345,7 +345,7 @@ class alert_handler_scoreboard extends cip_base_scoreboard #(
                 while (under_intr_classes[class_i] != 0 && !under_esc_classes[class_i]) begin
                   if (intr_cnter_per_class[class_i] >= timeout_cyc) predict_esc(class_i);
                   @(cfg.clk_rst_vif.cb);
-                  intr_cnter_per_class[class_i] += 1;
+                  if (!under_esc_classes[class_i]) intr_cnter_per_class[class_i] += 1;
                 end
               end
               if (!under_esc_classes[class_i]) intr_cnter_per_class[class_i] = 0;
@@ -374,22 +374,23 @@ class alert_handler_scoreboard extends cip_base_scoreboard #(
                                      .get_mirrored_value();
                   bit[TL_DW-1:0] class_ctrl = get_class_ctrl(class_i);
                   int enabled_sig_q[$];
+                  if (phase_thresh == 0) phase_thresh = 1;
                   for (int sig_i = 0; sig_i < NUM_ESC_SIGNALS; sig_i++) begin
                     if (class_ctrl[sig_i*2+7 -: 2] == phase_i && class_ctrl[sig_i+2]) begin
                       enabled_sig_q.push_back(sig_i);
                     end
                   end
                   if (under_esc_classes[class_i]) begin
-                    @(cfg.clk_rst_vif.cb);
-                    intr_cnter_per_class[class_i] = 1;
-                    incr_esc_sig_cnt(enabled_sig_q, class_i);
-                    while (under_esc_classes[class_i] != 0 &&
-                           intr_cnter_per_class[class_i] < phase_thresh) begin
-                      @(cfg.clk_rst_vif.cb);
+                    intr_cnter_per_class[class_i] = 0;
+                    //$display("%time count %0d class %0d phase %0d , esc %0d", $realtime, intr_cnter_per_class[class_i], class_i, phase_thresh, under_esc_classes[class_i]);
+                    while (under_esc_classes[class_i] && intr_cnter_per_class[class_i] < phase_thresh) begin
+                      cfg.clk_rst_vif.wait_n_clks(1);
                       incr_esc_sig_cnt(enabled_sig_q, class_i);
                       intr_cnter_per_class[class_i]++;
+                      //$display("%time count %0d class %0d", $realtime, intr_cnter_per_class[class_i], class_i);
                     end
                     incr_esc_sig_cnt(enabled_sig_q, class_i);
+                      //$display("%time again count %0d class %0d", $realtime, intr_cnter_per_class[class_i], class_i);
                     foreach (enabled_sig_q[i]) begin
                       int index = enabled_sig_q[i];
                       if (esc_sig_class[index] == (class_i + 1)) esc_signal_release[index] = 1;
@@ -398,17 +399,18 @@ class alert_handler_scoreboard extends cip_base_scoreboard #(
                 end
                 @(cfg.clk_rst_vif.cb);
                 intr_cnter_per_class[class_i] = 0;
-                cfg.clk_rst_vif.wait_clks(2);
+                //cfg.clk_rst_vif.wait_clks(2);
               end
               begin
                 wait(cfg.under_reset || !under_esc_classes[class_i]);
                 if (!under_esc_classes[class_i]) begin
-                  // wait 3 clk cycle until release esc signal completed
-                  cfg.clk_rst_vif.wait_clks(2);
+                  // wait 2 clk cycles until esc_signal_release is set
+                  cfg.clk_rst_vif.wait_n_clks(2);
                 end
               end
             join_any
             disable fork;
+            intr_cnter_per_class[class_i] = 0;
           end // end forever
         end
       join_none
@@ -422,7 +424,7 @@ class alert_handler_scoreboard extends cip_base_scoreboard #(
     fork
       automatic int sig_i = i;
       forever @ (esc_signal_release[sig_i]) begin
-        cfg.clk_rst_vif.wait_n_clks(2);
+        cfg.clk_rst_vif.wait_clks(2);
         esc_sig_class[sig_i] = 0;
         esc_signal_release[sig_i] = 0;
       end
@@ -435,10 +437,11 @@ class alert_handler_scoreboard extends cip_base_scoreboard #(
   virtual function void incr_esc_sig_cnt(const ref int sig_q[$], int class_i);
     foreach (sig_q[i]) begin
       int index = sig_q[i];
+      //$display("%time class %0d, sig %0d, original %0d", $realtime, class_i, index, esc_sig_class[index] );
       if (esc_sig_class[index] == 0) esc_sig_class[index] = class_i + 1;
       if (esc_sig_class[index] == (class_i + 1)) begin
         esc_cnter_per_signal[index]++;
-        `uvm_info(`gfn, $sformatf("class_%0d signal_%0d, esc_cnt=%0d", class_i, index,
+        if (index == 0)`uvm_info(`gfn, $sformatf("class_%0d signal_%0d, esc_cnt=%0d", class_i, index,
                                   esc_cnter_per_signal[index]), UVM_DEBUG)
       end
     end
@@ -461,11 +464,14 @@ class alert_handler_scoreboard extends cip_base_scoreboard #(
   // clear accumulative counters, and escalation counters if they are under escalation
   // interrupt timeout counters cannot be cleared by this
   function void clr_reset_esc_class(int class_i);
+    //fork begin
+    //        cfg.clk_rst_vif.wait_clks(1);
     if (under_esc_classes [class_i]) intr_cnter_per_class[class_i] = 0;
     if (under_intr_classes[class_i]) clr_esc_under_intr[class_i] = 1;
-    last_triggered_alert_per_class[class_i] = 0;
+    last_triggered_alert_per_class[class_i] = $realtime;
     under_esc_classes[class_i]              = 0;
     accum_cnter_per_class[class_i]          = 0;
+    //end join_none
   endfunction
 
   function void check_phase(uvm_phase phase);

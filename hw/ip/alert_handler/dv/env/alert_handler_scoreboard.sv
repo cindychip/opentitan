@@ -383,13 +383,13 @@ class alert_handler_scoreboard extends cip_base_scoreboard #(
                 end
                 @(cfg.clk_rst_vif.cb);
                 intr_cnter_per_class[class_i] = 0;
-                cfg.clk_rst_vif.wait_clks(2);
+                cfg.clk_rst_vif.wait_clks(1);
               end
               begin
                 wait(cfg.under_reset || !under_esc_classes[class_i]);
                 if (!under_esc_classes[class_i]) begin
                   // wait 3 clk cycle until release esc signal completed
-                  cfg.clk_rst_vif.wait_clks(3);
+                  cfg.clk_rst_vif.wait_clks(2);
                 end
               end
             join_any
@@ -405,7 +405,7 @@ class alert_handler_scoreboard extends cip_base_scoreboard #(
   virtual task release_esc_signal(int sig_i);
     fork
       begin
-        cfg.clk_rst_vif.wait_n_clks(2);
+        cfg.clk_rst_vif.wait_n_clks(1);
         esc_sig_class[sig_i] = 0;
       end
     join_none

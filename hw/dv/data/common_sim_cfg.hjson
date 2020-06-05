@@ -69,6 +69,7 @@
   // Default list of things to export to shell
   exports: [
     TOOL_SRCS_DIR: {tool_srcs_dir}
+    TOOL: {tool}
     EN_WAVES: {waves}
     DUMP_FMT: {dump_fmt}
     DUT_TOP: {dut}

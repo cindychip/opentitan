@@ -24,13 +24,20 @@ if {[info exists ::(TB_TOP)]} {
     set tb_top "$::env(TB_TOP)"
 }
 
+set fsdb_prefix "fsdb"
+if {[info exists ::env(TOOL)]} {
+  if {"$::env(TOOL)" == "xcelium"} {
+    set fsdb_prefix "call fsdb"
+  }
+}
+
 if {"$dump_fmt" == "fsdb"} {
     # The fsdbDumpvars +all command dumps everything: memories,
     # MDA signals, structs, unions, power and packed structs.
     puts "Dumping waves with VERDI to waves.fsdb"
-    fsdbDumpfile  "waves.fsdb"
-    fsdbDumpvars  0 $tb_top +all
-    fsdbDumpSVA   0 $tb_top
+    ${fsdb_prefix}Dumpfile  "waves.fsdb"
+    ${fsdb_prefix}Dumpvars  0 $tb_top +all
+    ${fsdb_prefix}DumpSVA  0 $tb_top
 } elseif {"$dump_fmt" == "shm"} {
     puts "Dumping waves in SHM format to waves.shm"
     database -open -default -shm "waves.shm"

@@ -42,4 +42,24 @@ interface alert_esc_if(input clk, input rst_n);
   task automatic wait_esc_complete();
     while (esc_tx.esc_p === 1'b1 && esc_tx.esc_n === 1'b0) @(monitor_cb);
   endtask : wait_esc_complete
+
+  task automatic wait_alert_ping();
+    logic ping_p = alert_rx.ping_p;
+    while (alert_rx.ping_p === ping_p) @(monitor_cb);
+  endtask : wait_alert_ping
+
+  task automatic wait_esc_ping();
+    int cycle_cnt;
+    do begin
+      cycle_cnt = 0;
+      while (esc_tx.esc_p === 1'b0 || (esc_tx.esc_p === esc_tx.esc_n)) @(monitor_cb);
+      @(monitor_cb);
+      cycle_cnt ++;
+      while (esc_tx.esc_p === 1'b1 && esc_tx.esc_n === 1'b0) begin
+        @(monitor_cb);
+        cycle_cnt ++;
+      end
+    end while (cycle_cnt > 1);
+  endtask : wait_esc_ping
+
 endinterface: alert_esc_if

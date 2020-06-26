@@ -167,9 +167,8 @@ class alert_handler_scoreboard extends cip_base_scoreboard #(
           intr_state_field = intr_state_fields[class_i];
           void'(intr_state_field.predict(.value(1), .kind(UVM_PREDICT_READ)));
           intr_en = ral.intr_enable.get_mirrored_value();
-          // TODO: need to clean up sequence to enable this
-          //`DV_CHECK_CASE_EQ(cfg.intr_vif.pins[class_i], intr_en[class_i],
-          //                  $sformatf("Interrupt class_%s", class_name[class_i]));
+          `DV_CHECK_CASE_EQ(cfg.intr_vif.pins[class_i], intr_en[class_i],
+                            $sformatf("Interrupt class_%s", class_name[class_i]));
           if (!under_intr_classes[class_i] && intr_en[class_i]) under_intr_classes[class_i] = 1;
           // calculate escalation
           class_ctrl = get_class_ctrl(class_i);
@@ -277,13 +276,7 @@ class alert_handler_scoreboard extends cip_base_scoreboard #(
                 if (!under_esc_classes[i]) state_per_class[i] = EscStateIdle;
               end
             end
-            // TODO: tries to avoid this by constrain sequence
-            fork
-              begin
-                cfg.clk_rst_vif.wait_clks(1);
-                void'(csr.predict(.value(item.a_data), .kind(UVM_PREDICT_WRITE), .be(item.a_mask)));
-              end
-            join_none
+            void'(csr.predict(.value(item.a_data), .kind(UVM_PREDICT_WRITE), .be(item.a_mask)));
           end
           "intr_enable": begin
             foreach (under_intr_classes[i]) begin

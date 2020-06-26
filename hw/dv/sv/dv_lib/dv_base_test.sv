@@ -36,6 +36,7 @@ class dv_base_test #(type CFG_T = dv_base_env_cfg,
     void'($value$plusargs("en_scb_mem_chk=%0b", cfg.en_scb_mem_chk));
     // knob to cfg all agents with zero delays
     void'($value$plusargs("zero_delays=%0b", cfg.zero_delays));
+    void'($value$plusargs("zero_alert_delays=%0b", cfg.zero_alert_delays));
   endfunction : build_phase
 
   virtual function void end_of_elaboration_phase(uvm_phase phase);

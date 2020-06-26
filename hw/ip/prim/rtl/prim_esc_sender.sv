@@ -127,6 +127,9 @@ module prim_esc_sender
         // jump to escalation response checking (lo state)
         if (esc_req_i) begin
           state_d = CheckEscRespLo;
+        end else if (!ping_req_i) begin
+          state_d = Idle;
+          if (resp) integ_fail_o = 1'b1;
         // abort if response is wrong
         end else if (!resp) begin
           state_d = Idle;
@@ -139,6 +142,9 @@ module prim_esc_sender
         // jump to escalation response checking (hi state)
         if (esc_req_i) begin
           state_d = CheckEscRespHi;
+        end else if (!ping_req_i) begin
+          state_d = Idle;
+          if (resp) integ_fail_o = 1'b1;
         // abort if response is wrong
         end else if (resp) begin
           state_d = Idle;
@@ -151,6 +157,9 @@ module prim_esc_sender
         // jump to escalation response checking (lo state)
         if (esc_req_i) begin
           state_d = CheckEscRespLo;
+        end else if (!ping_req_i) begin
+          state_d = Idle;
+          if (resp) integ_fail_o = 1'b1;
         // abort if response is wrong
         end else if (!resp) begin
           state_d = Idle;

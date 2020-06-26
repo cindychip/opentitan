@@ -107,10 +107,23 @@ class esc_receiver_driver extends alert_esc_base_driver;
       @(cfg.vif.receiver_cb);
       while (get_esc() === 1'b1) toggle_resp_signal(req);
       if (is_ping) begin
-        int toggle_cycle = 1;
-        if (req.int_err) toggle_cycle = $urandom_range(0, cfg.ping_timeout_cycle);
-        repeat (toggle_cycle) toggle_resp_signal(req);
+        int toggle_cycle = req.int_err ? cfg.ping_timeout_cycle / 2 : 1;
+        `uvm_info(`gfn, $sformatf("%time ping timeout cycle is %0d %0d int err %0b", $realtime, cfg.ping_timeout_cycle, toggle_cycle, req.int_err), UVM_LOW);
+        fork
+          begin : isolation_fork
+            fork
+              repeat (toggle_cycle) toggle_resp_signal(req);
+              wait(cfg.probe_vif.get_esc_en());
+            join_any
+            disable fork;
+          end
+        join
         is_ping = 0;
+        if (cfg.probe_vif.get_esc_en()) begin
+          $display("ping timeout interrupt by esc");
+          req.int_err = 0;
+          while (get_esc() === 1'b1) toggle_resp_signal(req);
+        end
       end
       if (req.int_err) reset_resp();
     end

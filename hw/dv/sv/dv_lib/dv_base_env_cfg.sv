@@ -14,6 +14,7 @@ class dv_base_env_cfg #(type RAL_T = dv_base_reg_block) extends uvm_object;
 
   // bit to configure all uvcs with zero delays to create high bw test
   rand bit zero_delays;
+  rand bit zero_alert_delays;
 
   // set zero_delays 40% of the time
   constraint zero_delays_c {

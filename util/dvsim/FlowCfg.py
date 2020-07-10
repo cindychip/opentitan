@@ -638,11 +638,11 @@ class FlowCfg():
         f.write(
             md_results_to_html(self.results_title, self.css_file, publish_results_md))
         f.close()
-        rm_cmd += "/bin/rm -rf " + results_html_file + "; "
+        # rm_cmd += "/bin/rm -rf " + results_html_file + "; "
 
         log.info("Publishing results to %s", results_page_url)
         cmd = (self.results_server_cmd + " cp " + results_html_file + " " +
-               self.results_server_page + "; " + rm_cmd)
+               self.results_server_page + "; ")
         log.log(VERBOSE, cmd)
         try:
             cmd_output = subprocess.run(args=cmd,

@@ -16,9 +16,9 @@ module tb;
   wire clk, rst_n;
   wire devmode;
   wire [NUM_MAX_INTERRUPTS-1:0] interrupts;
+  alert_esc_if alert_if[aes_reg_pkg::NumAlerts](.clk(clk), .rst_n(rst_n));
   prim_alert_pkg::alert_rx_t [aes_reg_pkg::NumAlerts-1:0] alert_rx;
-  assign alert_rx[0] = 4'b0101;
-  assign alert_rx[1] = 4'b0101;
+  prim_alert_pkg::alert_tx_t [aes_reg_pkg::NumAlerts-1:0] alert_tx;
 
   // interfaces
   clk_rst_if clk_rst_if(.clk(clk), .rst_n(rst_n));
@@ -27,6 +27,14 @@ module tb;
   pins_if #(1) devmode_if(devmode);
   tl_if tl_if(.clk(clk), .rst_n(rst_n));
 
+  for (genvar k = 0; k < aes_reg_pkg::NumAlerts; k++) begin : connect_alerts_pins
+    assign alert_rx[k] = alert_if[k].alert_rx;
+    assign alert_if[k].alert_tx = alert_tx[k];
+    initial begin
+      uvm_config_db#(virtual alert_esc_if)::set(null, $sformatf("*.env.m_alert_agent_%0s",
+          list_of_alerts[k]), "vif", alert_if[k]);
+    end
+  end
   // dut
   aes dut (
     .clk_i                (clk        ),
@@ -38,7 +46,7 @@ module tb;
     .tl_o                 (tl_if.d2h  ),
 
     .alert_rx_i           ( alert_rx  ),
-    .alert_tx_o           (           )
+    .alert_tx_o           ( alert_tx  )
   );
 
   initial begin

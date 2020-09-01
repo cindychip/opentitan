@@ -21,6 +21,7 @@ package aes_env_pkg;
   `include "dv_macros.svh"
 
   // parameters
+  string list_of_alerts[] = {"ctrl_err_update", "ctrl_err_storage"};
 
   parameter uint AES_ADDR_MAP_SIZE      = 128;
 

@@ -65,8 +65,12 @@ interface alert_esc_if(input clk, input rst_n);
   // alert_ping request is detected by level triggered "alert_rx.ping_p/n" signals pairs
   // and no sig_int_err
   task automatic wait_alert_ping();
-    logic ping_p = alert_rx.ping_p;
-    wait(alert_rx.ping_p !== ping_p && alert_rx.ping_p === !alert_rx.ping_n);
+    do begin
+      logic ping_p;
+      wait(rst_n === 1'b1);
+      ping_p = alert_rx.ping_p;
+      wait(alert_rx.ping_p !== ping_p && alert_rx.ping_p === !alert_rx.ping_n);
+    end while (rst_n !== 1'b1);
   endtask : wait_alert_ping
 
   // this task wait for esc_ping request.
@@ -75,6 +79,7 @@ interface alert_esc_if(input clk, input rst_n);
   task automatic wait_esc_ping();
     int cycle_cnt;
     do begin
+      wait(rst_n === 1'b1);
       cycle_cnt = 0;
       // wait for esc_p and no sig_int_err
       while (esc_tx.esc_p === 1'b0 || esc_tx.esc_p === esc_tx.esc_n) @(monitor_cb);
@@ -85,7 +90,7 @@ interface alert_esc_if(input clk, input rst_n);
       end
     // if cycle is larger than one, then it is a real esc signal instead of ping request
     // so keep blocking until found the ping request
-    end while (cycle_cnt > 1);
+    end while (cycle_cnt > 1 || (rst_n != 1'b1));
   endtask : wait_esc_ping
 
 endinterface: alert_esc_if

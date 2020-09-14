@@ -66,7 +66,26 @@ class alert_handler_ping_corner_cases_vseq extends alert_handler_entropy_vseq;
         join_any
         csr_utils_pkg::wait_no_outstanding_access();
         disable fork;
-        if (ping_index > 0) run_ping_interrupt_seqs(ping_index);
+        if (ping_index > 0) begin
+          int ping_index_during_interrupt_seq;
+          fork
+            begin
+              run_ping_interrupt_seqs();
+            end
+            begin
+              cfg.clk_rst_vif.wait_clks(1);
+              wait_alert_esc_ping(ping_index_during_interrupt_seq);
+            end
+          join_any
+          csr_utils_pkg::wait_no_outstanding_access();
+          disable fork;
+          if (ping_index_during_interrupt_seq > 0) begin
+            int ping_timeout_cyc = ral.ping_timeout_cyc.get_mirrored_value();
+            cfg.clk_rst_vif.wait_clks(ping_timeout_cyc + 5);
+            wait_esc_handshake_done();
+            clear_all_interrupts();
+          end
+        end
       end
       join
     end
@@ -76,7 +95,8 @@ class alert_handler_ping_corner_cases_vseq extends alert_handler_entropy_vseq;
   // 1). Interrupt the ping with a reset
   // 2). Interrupt the ping with real alerts
   // 3). Do nothing, wait until ping is done
-  virtual task run_ping_interrupt_seqs(int ping_index);
+  virtual task run_ping_interrupt_seqs();
+    int ping_timeout_cyc = ral.ping_timeout_cyc.get_mirrored_value();
     randcase
       1: begin
         `uvm_info(`gfn, "apply hard reset", UVM_MEDIUM)
@@ -88,13 +108,13 @@ class alert_handler_ping_corner_cases_vseq extends alert_handler_entropy_vseq;
         `uvm_info(`gfn, "insert alerts", UVM_MEDIUM)
         drive_alert('1, 0);
         // wait 5 cycles to make sure all the sig_int_errs are processed
-        cfg.clk_rst_vif.wait_clks(MAX_PING_TIMEOUT_CYCLE + 5);
+        cfg.clk_rst_vif.wait_clks(ping_timeout_cyc + 5);
         wait_esc_handshake_done();
       end
       10: begin
         `uvm_info(`gfn, "do nothing", UVM_MEDIUM)
         // wait 5 cycles to make sure all the sig_int_errs are processed
-        cfg.clk_rst_vif.wait_clks(MAX_PING_TIMEOUT_CYCLE + 5);
+        cfg.clk_rst_vif.wait_clks(ping_timeout_cyc + 5);
         wait_esc_handshake_done();
       end
     endcase

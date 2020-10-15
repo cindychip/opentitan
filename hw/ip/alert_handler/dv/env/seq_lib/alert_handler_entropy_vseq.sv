@@ -20,10 +20,6 @@ class alert_handler_entropy_vseq extends alert_handler_sanity_vseq;
     alert_en dist {'1 :/ 9, [0:('1-1)] :/ 1};
   }
 
-  constraint sig_int_c {
-    esc_int_err == 0;
-  }
-
   constraint lock_bit_c {
     do_lock_config == 1;
   }
@@ -34,6 +30,7 @@ class alert_handler_entropy_vseq extends alert_handler_sanity_vseq;
 
   function void pre_randomize();
     this.enable_classa_only_c.constraint_mode(0);
+    this.sig_int_c.constraint_mode(0);
     verbosity = UVM_HIGH;
   endfunction
 

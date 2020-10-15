@@ -20,6 +20,7 @@ class alert_handler_sanity_vseq extends alert_handler_base_vseq;
   rand bit [NUM_LOCAL_ALERT*2-1:0]         local_alert_class_map;
   rand bit [NUM_ESCS-1:0]                  esc_int_err;
   rand bit [NUM_ESCS-1:0]                  esc_standalone_int_err;
+  rand bit [NUM_ESCS-1:0]                  esc_ping_timeout;
 
   rand bit do_clr_esc;
   rand bit do_wr_phases_cyc;
@@ -79,6 +80,18 @@ class alert_handler_sanity_vseq extends alert_handler_base_vseq;
     esc_standalone_int_err == 0;
   }
 
+  constraint ping_fail_c {
+    alert_ping_timeout == 0;
+    esc_ping_timeout   == 0;
+  }
+
+  // for stress_all test, reset back the intr_timeout value
+  virtual task post_start();
+    super.post_start();
+    foreach (intr_timeout_cyc[i]) intr_timeout_cyc[i] = 0;
+    wr_intr_timeout_cycle(intr_timeout_cyc);
+  endtask
+
   task body();
     fork
       begin : isolation_fork
@@ -91,14 +104,19 @@ class alert_handler_sanity_vseq extends alert_handler_base_vseq;
 
   virtual task trigger_non_blocking_seqs();
     `DV_CHECK_MEMBER_RANDOMIZE_FATAL(esc_int_err)
-    run_esc_rsp_seq_nonblocking(esc_int_err);
+    `DV_CHECK_MEMBER_RANDOMIZE_FATAL(esc_ping_timeout)
+    `DV_CHECK_MEMBER_RANDOMIZE_FATAL(alert_ping_timeout)
+    run_esc_rsp_seq_nonblocking(esc_int_err, esc_ping_timeout);
     run_alert_ping_rsp_seq_nonblocking(alert_ping_timeout);
   endtask
 
   virtual task run_sanity_seq();
     `uvm_info(`gfn, $sformatf("num_trans=%0d", num_trans), UVM_LOW)
     for (int i = 1; i <= num_trans; i++) begin
+      bit has_local_int_err;
       `DV_CHECK_RANDOMIZE_FATAL(this)
+      has_local_int_err = (esc_int_err != 0 || alert_ping_timeout != 0 || esc_ping_timeout != 0);
+      if (has_local_int_err) `DV_CHECK_EQ(do_esc_intr_timeout, 0)
 
       `uvm_info(`gfn,
           $sformatf("start seq %0d/%0d: intr_en=%0b, alert=%0b, alert_en=%0b, alert_class=%0b",
@@ -151,9 +169,9 @@ class alert_handler_sanity_vseq extends alert_handler_base_vseq;
         // alert_accum_cnt, esc_cnt, class_state
         read_esc_status();
       end
-      // only check interrupt when no esc_int_err, otherwise clear interrupt might happen the
-      // same cycle as interrupt triggered by esc_int_err
-      if (esc_int_err == 0) check_alert_interrupts();
+      // only check interrupt when no esc_int_err and ping timeout err, otherwise clear interrupt
+      // might happen the same cycle as interrupt triggered by loc_causes
+      if (!has_local_int_err) check_alert_interrupts();
 
       // if ping timeout enabled, wait for ping timeout done before checking escalation phases
       if ((esc_int_err | alert_ping_timeout) > 0) cfg.clk_rst_vif.wait_clks(MAX_PING_TIMEOUT_CYCLE);
@@ -166,7 +184,7 @@ class alert_handler_sanity_vseq extends alert_handler_base_vseq;
         end
         begin
           cfg.clk_rst_vif.wait_clks($urandom_range(0, max_wait_phases_cyc));
-          if ($urandom_range(0, 1) && (esc_int_err == 0)) clear_esc();
+          if ($urandom_range(0, 1) && !has_local_int_err) clear_esc();
         end
       join
       read_alert_cause();

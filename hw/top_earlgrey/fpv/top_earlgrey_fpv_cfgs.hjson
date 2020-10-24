@@ -29,7 +29,7 @@
              {
                name: prim_arbiter_fixed_fpv
                fusesoc_core: lowrisc:fpv:prim_arbiter_fixed_fpv
-               import_cfgs: ["{proj_root}/hw/formal/data/common_fpv_cfg.hjson"]
+               import_cfgs: ["{proj_root}/hw/formal/tools/dvsim/common_fpv_cfg.hjson"]
                cov:true
              }
              {
@@ -89,7 +89,7 @@
              {
                name: rv_plic_generic_fpv
                fusesoc_core: lowrisc:fpv:rv_plic_generic_fpv
-               import_cfgs: ["{proj_root}/hw/formal/data/common_fpv_cfg.hjson"]
+               import_cfgs: ["{proj_root}/hw/formal/tools/dvsim/common_fpv_cfg.hjson"]
                cov:true
              }
             ]

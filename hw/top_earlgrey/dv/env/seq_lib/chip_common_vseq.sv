@@ -15,11 +15,13 @@ class chip_common_vseq extends chip_base_vseq;
     // Select SPI interface.
     cfg.jtag_spi_n_vif.drive(1'b0);
     enable_asserts_in_hw_reset_rand_wr = 0;
+    // Disable alert_monitor to avoid random CSR write causes alert to keep triggering,
+    // then causes phase_ready_to_end timeout
+    for (int i = 0; i < NUM_ALERTS; i++) cfg.m_alert_agent_cfg[LIST_OF_ALERTS[i]].en_mon = 0;
   endtask
 
   virtual task apply_reset(string kind = "HARD");
     super.apply_reset(kind);
-    cfg.mem_bkdr_vifs[Otp].clear_mem();
     wait (cfg.rst_n_mon_vif.pins[0] === 1);
     cfg.clk_rst_vif.wait_clks(100);
   endtask

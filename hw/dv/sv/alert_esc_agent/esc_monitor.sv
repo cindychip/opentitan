@@ -16,12 +16,15 @@ class esc_monitor extends alert_esc_base_monitor;
   bit under_esc_ping;
 
   virtual task run_phase(uvm_phase phase);
-    fork
-      esc_thread();
-      reset_thread();
-      unexpected_resp_thread();
-      sig_int_fail_thread();
-    join_none
+    super.run_phase(phase);
+    if (cfg.en_mon) begin
+      fork
+        esc_thread();
+        reset_thread();
+        unexpected_resp_thread();
+        sig_int_fail_thread();
+      join_none
+    end
   endtask : run_phase
 
   virtual function void reset_signals();
@@ -208,9 +211,11 @@ class esc_monitor extends alert_esc_base_monitor;
 
   // end phase when no escalation signal is triggered
   virtual task monitor_ready_to_end();
-    forever @(cfg.vif.monitor_cb.esc_rx.resp_p || cfg.vif.monitor_cb.esc_tx.esc_p) begin
-      ok_to_end = !cfg.vif.monitor_cb.esc_rx.resp_p && cfg.vif.monitor_cb.esc_rx.resp_n &&
-                  !get_esc();
+    if (cfg.en_mon) begin
+      forever @(cfg.vif.monitor_cb.esc_rx.resp_p || cfg.vif.monitor_cb.esc_tx.esc_p) begin
+        ok_to_end = !cfg.vif.monitor_cb.esc_rx.resp_p && cfg.vif.monitor_cb.esc_rx.resp_n &&
+                    !get_esc();
+      end
     end
   endtask
 

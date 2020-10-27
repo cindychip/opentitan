@@ -17,12 +17,14 @@ class alert_monitor extends alert_esc_base_monitor;
 
   virtual task run_phase(uvm_phase phase);
     super.run_phase(phase);
-    fork
-      alert_thread();
-      ping_thread();
-      reset_thread();
-      int_fail_thread();
-    join_none
+    if (cfg.en_mon) begin
+      fork
+        alert_thread();
+        ping_thread();
+        reset_thread();
+        int_fail_thread();
+      join_none
+    end
   endtask : run_phase
 
   virtual function void reset_signals();
@@ -180,10 +182,12 @@ class alert_monitor extends alert_esc_base_monitor;
 
   // end phase when no alert is triggered
   virtual task monitor_ready_to_end();
-    forever begin
-      @(cfg.vif.monitor_cb.alert_tx_final.alert_p);
-      ok_to_end = !cfg.vif.monitor_cb.alert_tx_final.alert_p &&
-                  cfg.vif.monitor_cb.alert_tx_final.alert_n;
+    if (cfg.en_mon) begin
+      forever begin
+        @(cfg.vif.monitor_cb.alert_tx_final.alert_p);
+        ok_to_end = !cfg.vif.monitor_cb.alert_tx_final.alert_p &&
+                    cfg.vif.monitor_cb.alert_tx_final.alert_n;
+      end
     end
   endtask
 

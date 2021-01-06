@@ -27,7 +27,7 @@ analyze -sv09                 \
   +define+FPV_ON              \
   -f [glob *.scr]
 
-elaborate -bbox_a 3600 -top $env(FPV_TOP) -enable_sva_isunknown
+elaborate -bbox_a 3600 -top prim_arbiter_ppc_fpv -enable_sva_isunknown
 
 #-------------------------------------------------------------------------
 # specify clock(s) and reset(s)
@@ -38,56 +38,12 @@ elaborate -bbox_a 3600 -top $env(FPV_TOP) -enable_sva_isunknown
 # tlul_assert.sv operates on the negedge clock
 # TODO: create each FPV_TOP's individual config file
 
-if {$env(FPV_TOP) == "rv_dm"} {
-  clock clk_i -both_edges
-  clock tck_i
-  reset -expr {!rst_ni !trst_ni}
-} elseif {$env(FPV_TOP) == "spi_device"} {
-  clock clk_i -both_edges
-  clock cio_sck_i
-  reset -expr {!rst_ni cio_csb_i}
-} elseif {$env(FPV_TOP) == "usb_fs_nb_pe"} {
-  clock clk_48mhz_i
-  reset -expr {!rst_ni}
-} elseif {$env(FPV_TOP) == "usbuart"} {
-  clock clk_i -both_edges
-  clock clk_usb_48mhz_i
-  reset -expr {!rst_ni}
-} elseif {$env(FPV_TOP) == "usbdev"} {
-  clock clk_i -both_edges
-  clock clk_usb_48mhz_i
-  reset -expr {!rst_ni}
-} elseif {$env(FPV_TOP) == "top_earlgrey"} {
-  clock clk_i -both_edges
-  clock jtag_tck_i
-  reset -expr {!rst_ni !jtag_trst_ni}
-} elseif {$env(FPV_TOP) == "xbar_main"} {
-  clock clk_main_i -both_edges
-  reset -expr {!rst_main_ni}
-} else {
-  clock clk_i -both_edges
-  reset -expr {!rst_ni}
-}
+clock clk_i -both_edges
+reset -expr {!rst_ni}
 
 # use counter abstractions to reduce the run time:
 # alert_handler ping_timer: timer to count until reaches ping threshold
 # hmac sha2: does not check any calculation results, so 64 rounds of calculation can be abstracted
-if {$env(FPV_TOP) == "alert_handler"} {
-  abstract -counter -env i_ping_timer.cnt_q
-} elseif {$env(FPV_TOP) == "hmac"} {
-  abstract -counter -env u_sha2.round
-  # disable these assertions because they are unreachable when the fifo is WO
-  assert -disable {*hmac.u_tlul_adapter.u_*fifo.*.depthShallNotExceedParamDepth}
-  assert -disable {*hmac.u_tlul_adapter.u_*fifo.DataKnown_A}
-  assert -disable {*hmac.u_tlul_adapter.rvalidHighReqFifoEmpty}
-  assert -disable {*hmac.u_tlul_adapter.rvalidHighWhenRspFifoFull}
-} elseif {$env(FPV_TOP) == "flash_ctrl"} {
-  # disable these assertions because they are unreachable when the fifo is WO
-  assert -disable {*flash_ctrl.u_to_prog_fifo.u_*fifo.depthShallNotExceedParamDepth}
-  assert -disable {*flash_ctrl.u_to_prog_fifo.u_*fifo.DataKnown_A}
-  assert -disable {*flash_ctrl.u_to_prog_fifo.rvalidHighReqFifoEmpty}
-  assert -disable {*flash_ctrl.u_to_prog_fifo.rvalidHighWhenRspFifoFull}
-}
 
 #-------------------------------------------------------------------------
 # assume properties for inputs
@@ -108,9 +64,7 @@ assume -from_assert -remove_original -regexp {^\w*\.scanmodeKnown}
 # TODO: If scanmode is set to 0, then JasperGold errors out complaining
 # about combo loops, which should be debugged further. For now, below
 # lines work around this issue
-if {$env(FPV_TOP) == "top_earlgrey"} {
-  assume {scanmode_i == 1}
-}
+
 
 # run once to check if assumptions have any conflict
 if {[info exists ::env(CHECK)]} {
@@ -126,6 +80,7 @@ if {[info exists ::env(CHECK)]} {
 #-------------------------------------------------------------------------
 
 set_proofgrid_per_engine_max_local_jobs 2
+set_proofgrid_mode local
 
 # Uncomment below 2 lines when using LSF:
 # set_proofgrid_mode lsf

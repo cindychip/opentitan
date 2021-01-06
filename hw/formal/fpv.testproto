@@ -1,0 +1,28 @@
+parent: "smart"
+
+jobs {
+  project_name: "playground"
+  command: "export LM_LICENSE_FILE=5280@10.10.0.2 && export CDS_LIC_FILE=5280@10.10.0.2:5281@10.10.0.12 && export COV=0 && export CHECK=0 && cd /workspace/mnt/my-tarball/build/lowrisc_fpv_prim_arbiter_ppc_fpv_0.1/formal-icarus && /workspace/mnt/my-jasper-image/bin/jg -batch /workspace/mnt/my-tarball/tools/jaspergold/fpv.tcl -proj /workspace/mnt/my-tarball/jgproject -allow_unsupported_OS | tee fpv.log"
+  priority: HIGH
+  interactive_type:VNC
+
+  requirements {
+    ram: 10000
+    licenses {
+      name: "/JASPER_FPV/CI2"
+      count: 2
+    }
+  }
+
+  mounts {
+    tarball_mounts {
+      uri: 'gs://749baf4c-d433-3f3b-aa9f-1aceb6c3951e/EDAFarmArchive/tarballs/2021/01/06/2342/d42419f7a2de70bd253fe64efefa825d85bcc7988fdf42bdb1db4fd4e262fdd8.tar.gz'
+      dir: 'my-tarball'
+    }
+
+    image_mounts {
+      name: "cadence-jasper-2020-09-e20200831"
+      dir: "my-jasper-image"
+    }
+  }
+}

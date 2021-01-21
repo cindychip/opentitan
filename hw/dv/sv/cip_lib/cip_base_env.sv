@@ -60,6 +60,7 @@ class cip_base_env #(type CFG_T               = cip_base_env_cfg,
       m_alert_agent[alert_name] = alert_esc_agent::type_id::create(agent_name, this);
       uvm_config_db#(alert_esc_agent_cfg)::set(this, agent_name, "cfg",
           cfg.m_alert_agent_cfg[alert_name]);
+      cfg.m_alert_agent_cfg[alert_name].clk_freq_mhz = int'(cfg.clk_freq_mhz);
     end
 
     // create edn pull agent, set cfg and set clk freq

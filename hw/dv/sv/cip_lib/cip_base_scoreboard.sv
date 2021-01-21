@@ -25,7 +25,6 @@ class cip_base_scoreboard #(type RAL_T = dv_base_reg_block,
   local bit under_alert_handshake[string];
   local bit exp_alert[string];
   local bit is_always_on_alert[string];
-  local int alert_max_delay[string];
 
   `uvm_component_new
 
@@ -110,13 +109,13 @@ class cip_base_scoreboard #(type RAL_T = dv_base_reg_block,
 
   // this function check if the triggered alert is expected
   // to turn off this check, user can set `do_alert_check` to 0
-  virtual function void process_alert(string alert_name, alert_esc_seq_item item);
+  virtual task process_alert(string alert_name, alert_esc_seq_item item);
     if (!(alert_name inside {cfg.list_of_alerts})) begin
       `uvm_fatal(`gfn, $sformatf("alert_name %0s is not in cfg.list_of_alerts!", alert_name))
     end
 
     `uvm_info(`gfn, $sformatf("alert %0s detected, alert_status is %s", alert_name,
-                              item.alert_handshake_sta), UVM_DEBUG)
+                              item.alert_handshake_sta), UVM_LOW)
     if (item.alert_handshake_sta == AlertReceived) begin
       under_alert_handshake[alert_name] = 1;
       if (do_alert_check) begin
@@ -127,13 +126,23 @@ class cip_base_scoreboard #(type RAL_T = dv_base_reg_block,
       if (!cfg.under_reset && under_alert_handshake[alert_name] == 0) begin
         `uvm_error(`gfn, $sformatf("alert %0s is not received!", alert_name))
       end
+      //set_alert_handshake_done(alert_name);
       under_alert_handshake[alert_name] = 0;
     end
-  endfunction
+  endtask
+
+  virtual task set_alert_handshake_done(string alert_name);
+    fork
+      begin
+        cfg.clk_rst_vif.wait_clks(1);
+        under_alert_handshake[alert_name] = 0;
+      end
+    join_none
+  endtask
 
   // this task is implemented to check if expected alert is triggered within certain clock cycles
-  // if alert is always_on, it will expect alert handshakes until reset
-  // if alert is not always_on, it will set exp_alert back to 0 once finish alert_checking
+  // if alert is fatal alert, it will expect alert handshakes until reset
+  // if alert is not fatal alert, it will set exp_alert back to 0 once finish alert_checking
   virtual task check_alerts();
     foreach (cfg.list_of_alerts[i]) begin
       automatic string alert_name = cfg.list_of_alerts[i];
@@ -155,31 +164,26 @@ class cip_base_scoreboard #(type RAL_T = dv_base_reg_block,
   endtask
 
   virtual task check_alert_triggered(string alert_name);
-    repeat(alert_max_delay[alert_name]) begin
-      cfg.clk_rst_vif.wait_clks(1);
-      if (under_alert_handshake[alert_name] || cfg.under_reset) break;
+    // 2 clock cycles between two alert handshakes, 1 clock cycle to go back to `Idle` state,
+    // 1 clock cycle for monitor to detect alert, 1 negedge edge to make sure no race condition.
+    repeat(5) begin
+      cfg.clk_rst_vif.wait_n_clks(1);
+      if (under_alert_handshake[alert_name] || cfg.under_reset) return;
     end
-    if (!under_alert_handshake[alert_name] && !cfg.under_reset) begin
-      `uvm_error(`gfn, $sformatf("alert %0s did not trigger within %0d cycles",
-                 alert_name, alert_max_delay[alert_name]))
-    end
+    `uvm_error(`gfn, $sformatf("alert %0s did not trigger", alert_name))
   endtask
 
   // this function is used for individual IPs to set when they expect certain alert to trigger
   // - input alert_name is the full name of the alert listed in LIST_OF_ALERTS
-  // - input delay_window sets the max clock cycle delay until the actual alert triggers. This
-  //   number will be added an additional default delay in this function. In async mode, we will
-  //   add additional 6 clock cycles(the min window between two handshakes); in sync mode, 2 clock
-  //   cycles are added
-  // - input always_on indicates once the alert is triggered, it always sends alert request to
-  //   alert_sender until reset is asserted
+  // - input is_fatal, if set, expects to continuously trigger alert request until reset is
+  //   asserted
   // - output is one bit. It returns true if set_exp_alert is successful, it returns false if user
   //   is trying to set alerts during alert_handshake or exp_alert is already set
-  virtual function bit set_exp_alert(string alert_name, int max_delay = 0, bit always_on = 0);
+  virtual function bit set_exp_alert(string alert_name, bit is_fatal = 0);
     if (!(alert_name inside {cfg.list_of_alerts})) begin
       `uvm_fatal(`gfn, $sformatf("alert_name %0s is not in cfg.list_of_alerts!", alert_name))
     end
-
+    // TODO: concern, if set under_alert_handshake to 1 happen at the same clk cycle?
     if (under_alert_handshake[alert_name] || exp_alert[alert_name]) begin
       `uvm_info(`gfn, $sformatf("Current %0s alert status under_alert_handshake=%0b,\
                 exp_alert=%0b, request ignored", alert_name, under_alert_handshake[alert_name],
@@ -189,10 +193,7 @@ class cip_base_scoreboard #(type RAL_T = dv_base_reg_block,
       `uvm_info(`gfn, $sformatf("alert %0s is expected to trigger", alert_name), UVM_MEDIUM)
     end
 
-    is_always_on_alert[alert_name] = always_on;
-    // in async mode, 6 clock cycles are the min window between two alert handshakes
-    // in sync mode, 2 clock cycles are the min window
-    alert_max_delay[alert_name] = max_delay + cfg.m_alert_agent_cfg[alert_name].is_async ? 6 : 2;
+    is_always_on_alert[alert_name] = is_fatal;
     exp_alert[alert_name] = 1;
     return 1;
   endfunction
@@ -322,7 +323,6 @@ class cip_base_scoreboard #(type RAL_T = dv_base_reg_block,
       exp_alert[cfg.list_of_alerts[i]]             = 0;
       under_alert_handshake[cfg.list_of_alerts[i]] = 0;
       is_always_on_alert[cfg.list_of_alerts[i]]    = 0;
-      alert_max_delay[cfg.list_of_alerts[i]]       = 0;
     end
   endfunction
 

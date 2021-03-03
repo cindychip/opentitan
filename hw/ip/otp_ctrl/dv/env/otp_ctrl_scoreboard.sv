@@ -549,8 +549,8 @@ class otp_ctrl_scoreboard extends cip_base_scoreboard #(
           bit [TL_DW-1:0] status_mask;
           if (item.d_data[OtpDaiIdleIdx]) check_otp_idle(1);
 
-          // Mask out check_pending field - we do not know how long it takes to process checks.
-          if (under_chk) status_mask[OtpCheckPendingIdx] = 1;
+          // Mask out all bits. Potentially all errors could happen during OTP checks.
+          if (under_chk) status_mask = '1;
 
           // Mask out otp_dai access related field - we do not know how long it takes to finish
           // DAI access.
@@ -587,6 +587,10 @@ class otp_ctrl_scoreboard extends cip_base_scoreboard #(
       "check_trigger": begin
         if (addr_phase_write && `gmv(ral.check_trigger_regwen) && item.a_data inside {[1:3]}) begin
           exp_status[OtpCheckPendingIdx] = 1;
+          if (item.a_data[OtpCnstyChk] && cfg.check_macro_failed_parts) begin
+            // might do a integrity check, which takes long time
+            set_exp_alert("fatal_macro_error", 1, 2000);
+          end
         end
       end
       "hw_cfg_digest_0", "hw_cfg_digest_1", "", "secret0_digest_0", "secret0_digest_1",

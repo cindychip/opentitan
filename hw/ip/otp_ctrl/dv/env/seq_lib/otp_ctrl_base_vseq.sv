@@ -34,6 +34,7 @@ class otp_ctrl_base_vseq extends cip_base_vseq #(
   virtual task apply_reset(string reset_kind = "HARD");
     super.apply_reset(reset_kind);
     cfg.ecc_err = OtpNoEccErr;
+    cfg.check_macro_failed_parts = 0;
   endtask
 
   virtual task dut_shutdown();
@@ -203,20 +204,21 @@ class otp_ctrl_base_vseq extends cip_base_vseq #(
   // This function will output original backdoor read data for the given address.
   // TODO: move it to mem_bkdr_if once #4794 landed
   virtual function bit [TL_DW-1:0] backdoor_inject_ecc_err(bit [TL_DW-1:0] addr,
-                                                           bit [TL_DW-1:0] err_mask);
+                                                           bit [TL_DW-1:0] err_mask,
+                                                           bit update_ecc_err = 1);
     bit [TL_DW-1:0] val, backdoor_val;
     addr = {addr[TL_DW-3:2], 2'b00};
     if (err_mask == 0 || addr >= LifeCycleOffset) begin
-      cfg.ecc_err = OtpNoEccErr;
+      if (update_ecc_err) cfg.ecc_err = OtpNoEccErr;
       return 0;
     end
 
     // If every byte at most has one ECC error bit, it is a correctable error
     // If any byte at more than one ECC error bit, it is a uncorrectable error
-    cfg.ecc_err = OtpEccCorrErr;
+    if (update_ecc_err) cfg.ecc_err = OtpEccCorrErr;
     for (int i = 0; i < 2; i++) begin
       if (!$onehot(err_mask[i*16+:16]) && err_mask[i*16+:16]) begin
-        cfg.ecc_err = OtpEccUncorrErr;
+        if (update_ecc_err) cfg.ecc_err = OtpEccUncorrErr;
         break;
       end
     end
@@ -231,9 +233,26 @@ class otp_ctrl_base_vseq extends cip_base_vseq #(
     return val;
   endfunction
 
-  virtual task trigger_checks(bit [1:0] val, bit wait_done = 1);
+  virtual task trigger_checks(bit [1:0] val, bit [1:0] do_check_fail = '1, bit wait_done = 1);
+    // Consistency check fail due to ECC errors
+    if (do_check_fail[OtpCnstyChk]) begin
+      bit [NUM_HW_PARTS*2-1:0] failed_parts = $urandom_range(1, 1 << (NUM_HW_PARTS*4) -1);
+      bit [TL_DW-1] err_mask;
+      $display("failed parts %0b", failed_parts);
+
+      for (int i = 0; i < NUM_HW_PARTS * 2; i++) begin
+        if (failed_parts[i]) begin
+          bit [TL_DW-1:0] addr = (i % 2) ? HW_DIGEST_ADDRS[i / 2] :
+                                           HW_DIGEST_ADDRS[i / 2] + 4;
+          `DV_CHECK_STD_RANDOMIZE_WITH_FATAL(err_mask, $countones(err_mask) inside {1, 2};)
+          backdoor_inject_ecc_err(addr, err_mask, (cfg.ecc_err != OtpEccUncorrErr));
+          cfg.check_macro_failed_parts = i / 2 + OtpHwCfgErrIdx;
+        end
+      end
+    end
     csr_wr(ral.check_trigger, val);
     if (wait_done && val) csr_spinwait(ral.status.check_pending, 0);
+
   endtask
 
   virtual task rd_and_clear_intrs();

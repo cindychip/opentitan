@@ -86,6 +86,11 @@ package otp_ctrl_env_pkg;
   parameter uint NUM_SRAM_EDN_REQ = 10;
   parameter uint NUM_OTBN_EDN_REQ = 16;
 
+  parameter uint NUM_HW_PARTS = 4;
+
+  parameter uint INT_CHK_CYCLES = 1822;
+  parameter uint CNSTY_CHK_CYCLES = 50;
+
   // lc does not have digest
   parameter int PART_BASE_ADDRS [NumPart-1] = {
     CreatorSwCfgOffset,
@@ -96,6 +101,13 @@ package otp_ctrl_env_pkg;
     Secret2Offset
   };
 
+  // queue of address for HW digests
+  parameter int HW_DIGEST_ADDRS [NUM_HW_PARTS] = {
+    HwCfgDigestOffset,
+    Secret0DigestOffset,
+    Secret1DigestOffset,
+    Secret2DigestOffset
+  };
   // types
   typedef enum bit [1:0] {
     OtpOperationDone,
@@ -121,7 +133,12 @@ package otp_ctrl_env_pkg;
     OtpCheckPendingIdx
   } otp_status_e;
 
-typedef enum bit [1:0] {
+ typedef enum bit [1:0] {
+   OtpIntChk,
+   OtpCnstyChk
+ } otp_checks_e;
+
+ typedef enum bit [1:0] {
     OtpNoEccErr,
     OtpEccCorrErr,
     OtpEccUncorrErr

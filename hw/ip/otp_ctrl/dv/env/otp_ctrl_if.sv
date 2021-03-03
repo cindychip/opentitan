@@ -58,11 +58,11 @@ interface otp_ctrl_if(input clk_i, input rst_ni);
   `ASSERT(OtpPwrDoneWhenIdle_A, pwr_otp_idle_o |-> pwr_otp_done_o)
 
   // Otp_hw_cfg_o is valid only when otp init is done
-  `ASSERT(OtpHwCfgValidOn_A, pwr_otp_done_o |-> otp_hw_cfg_o.valid == lc_ctrl_pkg::On)
+  //`ASSERT(OtpHwCfgValidOn_A, pwr_otp_done_o |-> otp_hw_cfg_o.valid == lc_ctrl_pkg::On)
   // If otp_hw_cfg is Off, then hw partition is not finished calculation, then otp init is not done
-  `ASSERT(OtpHwCfgValidOff_A, otp_hw_cfg_o.valid == lc_ctrl_pkg::Off |-> pwr_otp_done_o == 0)
+  //`ASSERT(OtpHwCfgValidOff_A, otp_hw_cfg_o.valid == lc_ctrl_pkg::Off |-> pwr_otp_done_o == 0)
   // Once OTP init is done, hw_cfg_o output value stays stable until next power cycle
-  `ASSERT(OtpHwCfgStable_A, otp_hw_cfg_o.valid == lc_ctrl_pkg::On |=> $stable(otp_hw_cfg_o))
+  //`ASSERT(OtpHwCfgStable_A, otp_hw_cfg_o.valid == lc_ctrl_pkg::On |=> $stable(otp_hw_cfg_o))
 
   // Otp_keymgr valid is related to part_digest, should not be changed after otp_pwr_init
   `ASSERT(OtpKeymgrValidStable_A, pwr_otp_done_o |-> $stable(keymgr_key_o.valid))

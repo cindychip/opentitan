@@ -81,8 +81,7 @@ class otp_ctrl_base_vseq extends cip_base_vseq #(
     //   detected
     // - zero delays in TLUL interface, otherwise dai operation might be finished before reading
     //   these two CSRs
-    if (cfg.zero_delays && is_valid_dai_op &&
-        cfg.otp_ctrl_vif.lc_escalate_en_i != lc_ctrl_pkg::On) begin
+    if (cfg.zero_delays && is_valid_dai_op && !cfg.otp_ctrl_vif.lc_esc_on) begin
       csr_rd_check(ral.status.dai_idle, .compare_value(0), .backdoor(1));
       if ($urandom_range(0, 1)) csr_rd(.ptr(ral.direct_access_regwen), .value(val));
     end
@@ -107,8 +106,7 @@ class otp_ctrl_base_vseq extends cip_base_vseq #(
     csr_wr(ral.direct_access_address, addr);
     csr_wr(ral.direct_access_cmd, int'(otp_ctrl_pkg::DaiRead));
 
-    if (cfg.zero_delays && is_valid_dai_op &&
-        cfg.otp_ctrl_vif.lc_escalate_en_i != lc_ctrl_pkg::On) begin
+    if (cfg.zero_delays && is_valid_dai_op && !cfg.otp_ctrl_vif.lc_esc_on) begin
       csr_rd_check(ral.status.dai_idle, .compare_value(0), .backdoor(1));
       if ($urandom_range(0, 1)) csr_rd(.ptr(ral.direct_access_regwen), .value(val));
     end
@@ -142,8 +140,7 @@ class otp_ctrl_base_vseq extends cip_base_vseq #(
     csr_wr(ral.direct_access_address, PART_BASE_ADDRS[part_idx]);
     csr_wr(ral.direct_access_cmd, otp_ctrl_pkg::DaiDigest);
 
-    if (cfg.zero_delays && is_valid_dai_op &&
-        cfg.otp_ctrl_vif.lc_escalate_en_i != lc_ctrl_pkg::On) begin
+    if (cfg.zero_delays && is_valid_dai_op && !cfg.otp_ctrl_vif.lc_esc_on) begin
       csr_rd_check(ral.status.dai_idle, .compare_value(0), .backdoor(1));
       if ($urandom_range(0, 1)) csr_rd(.ptr(ral.direct_access_regwen), .value(val));
     end
@@ -317,8 +314,7 @@ class otp_ctrl_base_vseq extends cip_base_vseq #(
     end
 
     `DV_CHECK_RANDOMIZE_FATAL(lc_prog_pull_seq)
-    `DV_SPINWAIT_EXIT(`uvm_send(lc_prog_pull_seq),
-                      wait(cfg.otp_ctrl_vif.lc_escalate_en_i == lc_ctrl_pkg::On);)
+    `DV_SPINWAIT_EXIT(`uvm_send(lc_prog_pull_seq), wait(cfg.otp_ctrl_vif.lc_esc_on);)
 
     if (check_intr) rd_and_clear_intrs();
   endtask
@@ -327,8 +323,7 @@ class otp_ctrl_base_vseq extends cip_base_vseq #(
     push_pull_host_seq#(.HostDataWidth(lc_ctrl_state_pkg::LcTokenWidth)) lc_token_pull_seq;
     `uvm_create_on(lc_token_pull_seq, p_sequencer.lc_token_pull_sequencer_h);
     `DV_CHECK_RANDOMIZE_FATAL(lc_token_pull_seq)
-    `DV_SPINWAIT_EXIT(`uvm_send(lc_token_pull_seq),
-                      wait(cfg.otp_ctrl_vif.lc_escalate_en_i == lc_ctrl_pkg::On);)
+    `DV_SPINWAIT_EXIT(`uvm_send(lc_token_pull_seq), wait(cfg.otp_ctrl_vif.lc_esc_on);)
   endtask
 
   // first two or three LSB bits of DAI address can be randomized based on if it is secret

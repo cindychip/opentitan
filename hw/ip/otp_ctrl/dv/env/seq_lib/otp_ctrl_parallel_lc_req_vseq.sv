@@ -9,6 +9,13 @@ class otp_ctrl_parallel_lc_req_vseq extends otp_ctrl_parallel_base_vseq;
 
   `uvm_object_new
 
+  rand bit [lc_ctrl_pkg::TxWidth-1:0] lc_esc_val;
+
+  // temp constraint not to drive esc off
+  constraint lc_esc_c {
+    lc_esc_val != lc_ctrl_pkg::Off;
+  }
+
   // disable checks in case lc_program and check triggered at the same time
   constraint regwens_c {
     check_regwen_val dist {0 :/ 1, 1 :/ 9};
@@ -32,21 +39,16 @@ class otp_ctrl_parallel_lc_req_vseq extends otp_ctrl_parallel_base_vseq;
         end
       end
       begin
-        // req lc token request
+        // req lc_escalate_en
         if ($urandom_range(0, 1)) begin
           wait_clk_or_reset($urandom_range(0, 500));
-          if (!base_vseq_done && !cfg.under_reset) req_lc_token();
-        end
-      end
-      begin
-        // req lc token request
-        if ($urandom_range(0, 1)) begin
-          wait_clk_or_reset($urandom_range(0, 500));
+          // Async input
+          #($urandom_range(1000, 0) * 1ps);
           if (!base_vseq_done && !cfg.under_reset) begin
-            // TODO: random drive any values instead of just on and off
-            cfg.otp_ctrl_vif.drive_lc_escalate_en(lc_ctrl_pkg::On);
+            cfg.otp_ctrl_vif.drive_lc_escalate_en(lc_esc_val);
             // Turn off reset because if issuing lc_escalation_en during otp program, scb cannot
             // predict if the OTP memory is programmed or not.
+            // TODO: Plan to support it in rand_reset test.
             do_reset_in_seq = 0;
           end
         end

@@ -32,8 +32,6 @@ class otp_ctrl_scoreboard extends cip_base_scoreboard #(
 
   bit macro_alert_triggered;
 
-  bit lc_esc;
-
   // TLM agent fifos
   uvm_tlm_analysis_fifo #(push_pull_item#(.DeviceDataWidth(SRAM_DATA_SIZE)))
                         sram_fifos[NumSramKeyReqSlots];
@@ -119,13 +117,13 @@ class otp_ctrl_scoreboard extends cip_base_scoreboard #(
           bit [otp_ctrl_pkg::KeyMgrKeyWidth-1:0] exp_keymgr_key0, exp_keymgr_key1;
 
           // Dai access is unlocked because the power init is done
-          if (!lc_esc) void'(ral.direct_access_regwen.predict(1));
+          if (!cfg.otp_ctrl_vif.lc_esc_on) void'(ral.direct_access_regwen.predict(1));
 
           // Dai idle is set because the otp init is done
           exp_status[OtpDaiIdleIdx] = 1;
 
           // Hwcfg_o gets data from OTP HW cfg partition
-          exp_hwcfg_data = lc_esc ?
+          exp_hwcfg_data = cfg.otp_ctrl_vif.lc_esc_on ?
                            otp_ctrl_part_pkg::PartInvDefault[HwCfgOffset*8 +: HwCfgSize*8] :
                            otp_hw_cfg_data_t'({<<32 {otp_a[HwCfgOffset/4 +: HwCfgSize/4]}});
           `DV_CHECK_EQ(cfg.otp_ctrl_vif.otp_hw_cfg_o.data, exp_hwcfg_data)
@@ -152,17 +150,22 @@ class otp_ctrl_scoreboard extends cip_base_scoreboard #(
 
   virtual task process_lc_esc();
     forever begin
-      wait(cfg.otp_ctrl_vif.lc_escalate_en_i == lc_ctrl_pkg::On);
+      wait(cfg.otp_ctrl_vif.lc_esc_on);
+
+      // wait 2 clock cycle until lc_escalate_en is synced.
+      cfg.clk_rst_vif.wait_n_clks(2);
+
       // LC_escalate_en will trigger fatal check alert.
-      set_exp_alert("fatal_check_error", 1, 5);
+      set_exp_alert("fatal_check_error", 1);
 
       // Update status bits.
+      $display("%time set it ", $realtime);
       exp_status = '0;
-      for (int i = 0; i < OtpTimeoutErrIdx; i++) predict_err(otp_status_e'(i), OtpFsmStateError);
+      for (int i = 0; i < OtpTimeoutErrIdx; i++) begin
+        predict_err(.status_err_idx(otp_status_e'(i)), .err_code(OtpFsmStateError),
+                    .predict_esc_sta(1));
+      end
       exp_status[OtpDerivKeyFsmErrIdx:OtpLfsrFsmErrIdx] = '1;
-
-      // Set lc_esc flag, only DUT reset can clear this flag.
-      lc_esc = 1;
 
       // Update digest values and direct_access_regwen.
       for (int i = HwCfgIdx; i <= Secret2Idx; i++) digests[i] = 0;
@@ -170,7 +173,7 @@ class otp_ctrl_scoreboard extends cip_base_scoreboard #(
       predict_rdata(1, 0, 0);
       void'(ral.direct_access_regwen.predict(.value(0), .kind(UVM_PREDICT_READ)));
 
-      wait(cfg.otp_ctrl_vif.lc_escalate_en_i != lc_ctrl_pkg::On);
+      wait(cfg.otp_ctrl_vif.lc_esc_on == 0);
     end
   endtask
 
@@ -466,7 +469,7 @@ class otp_ctrl_scoreboard extends cip_base_scoreboard #(
         end
       end
       "direct_access_cmd": begin
-        if (addr_phase_write && !lc_esc) begin
+        if (addr_phase_write && !cfg.otp_ctrl_vif.lc_esc_on) begin
           // here only normalize to 2 lsb, if is secret, will be reduced further
           bit [TL_AW-1:0] dai_addr = `gmv(ral.direct_access_address) >> 2 << 2;
           int part_idx = get_part_index(dai_addr);
@@ -615,7 +618,7 @@ class otp_ctrl_scoreboard extends cip_base_scoreboard #(
             end
           end
 
-          if (under_dai_access && !lc_esc) begin
+          if (under_dai_access && !cfg.otp_ctrl_vif.lc_esc_on) begin
             if (item.d_data[OtpDaiIdleIdx]) begin
               under_dai_access = 0;
               void'(ral.direct_access_regwen.predict(1));
@@ -635,6 +638,11 @@ class otp_ctrl_scoreboard extends cip_base_scoreboard #(
             predict_err(OtpTimeoutErrIdx);
           end
         end
+      end
+      // TODO: temp skip check if esc_en is set.
+      "creator_sw_cfg_digest_0", "creator_sw_cfg_digest_1", "owner_sw_cfg_digest_0",
+      "owner_sw_cfg_digest_1": begin
+        if (cfg.otp_ctrl_vif.lc_esc_on) do_read_check = 0;
       end
       "hw_cfg_digest_0", "hw_cfg_digest_1", "secret0_digest_0", "secret0_digest_1",
       "secret1_digest_0", "secret1_digest_1", "secret2_digest_0", "secret2_digest_1",
@@ -672,7 +680,6 @@ class otp_ctrl_scoreboard extends cip_base_scoreboard #(
       sram_fifos[i].flush();
     end
 
-    lc_esc                = 0;
     under_chk             = 0;
     under_dai_access      = 0;
     macro_alert_triggered = 0;
@@ -714,9 +721,9 @@ class otp_ctrl_scoreboard extends cip_base_scoreboard #(
                  cfg.m_lc_token_pull_agent_cfg.vif.req ||
                  // When lc_escalation is on, the DAI interface goes to ErrorSt, so ignore
                  // otp_idle checking.
-                 lc_esc ||
+                 cfg.otp_ctrl_vif.lc_esc_on ||
                  // Check timeout will keep doing background check, issue #5616
-                 lc_esc || exp_status[OtpTimeoutErrIdx]);
+                 exp_status[OtpTimeoutErrIdx]);
           end
         join_any
         disable fork;
@@ -793,7 +800,7 @@ class otp_ctrl_scoreboard extends cip_base_scoreboard #(
     int             array_size;
     real            key_factor  = SCRAMBLE_KEY_SIZE / TL_DW;
 
-    if (lc_esc) return;
+    if (cfg.otp_ctrl_vif.lc_esc_on) return;
 
     if (digests[part_idx] != 0 ||
         part_idx inside {CreatorSwCfgIdx, OwnerSwCfgIdx, LifeCycleIdx}) begin
@@ -916,8 +923,9 @@ class otp_ctrl_scoreboard extends cip_base_scoreboard #(
 
   // This function predict OTP error related registers: intr_state, status, and err_code
   virtual function void predict_err(otp_status_e   status_err_idx,
-                                    otp_err_code_e err_code = OtpNoError);
-    if (lc_esc) return;
+                                    otp_err_code_e err_code = OtpNoError,
+                                    bit            predict_esc_sta = 0);
+    if (cfg.otp_ctrl_vif.lc_esc_on && !predict_esc_sta) return;
 
     // Update intr_state
     void'(ral.intr_state.otp_error.predict(.value(1), .kind(UVM_PREDICT_READ)));
@@ -927,11 +935,23 @@ class otp_ctrl_scoreboard extends cip_base_scoreboard #(
 
     // Only first 8 status errors have corresponding err_code
     if (status_err_idx <= OtpLciErrIdx) begin
+      bit [TL_DW-1:0]   curr_err_code;
       dv_base_reg_field err_code_flds[$];
       if (err_code == OtpNoError) begin
         `uvm_error(`gfn, $sformatf("please set status error: %0s error code", status_err_idx.name))
       end
       ral.err_code.get_dv_base_reg_fields(err_code_flds);
+
+      // Err_code can be updated only if the previous error is non-fatal
+      curr_err_code = `gmv(err_code_flds[status_err_idx]);
+      if (status_err_idx == OtpLciErrIdx) begin
+        if (curr_err_code != OtpNoError) return;
+      end else begin
+        if (curr_err_code inside
+            {OtpMacroEccUncorrError, OtpCheckFailError, OtpFsmStateError}) begin
+          return;
+        end
+      end
       void'(err_code_flds[status_err_idx].predict(.value(err_code), .kind(UVM_PREDICT_READ)));
     end
 
@@ -939,7 +959,7 @@ class otp_ctrl_scoreboard extends cip_base_scoreboard #(
 
   // TODO: consider combine it with function predict_err()
   virtual function void predict_no_err(otp_status_e status_err_idx);
-    if (lc_esc) return;
+    if (cfg.otp_ctrl_vif.lc_esc_on) return;
 
     exp_status[status_err_idx] = 0;
     if (status_err_idx == OtpDaiErrIdx) exp_status[OtpDaiIdleIdx] = 1;
@@ -948,6 +968,7 @@ class otp_ctrl_scoreboard extends cip_base_scoreboard #(
       dv_base_reg_field err_code_flds[$];
       ral.err_code.get_dv_base_reg_fields(err_code_flds);
       void'(err_code_flds[status_err_idx].predict(OtpNoError));
+      $display("%time reset it back to 0", $realtime);
     end
   endfunction
 

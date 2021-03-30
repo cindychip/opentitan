@@ -11,10 +11,9 @@ class otp_ctrl_stress_all_vseq extends otp_ctrl_base_vseq;
   `uvm_object_new
 
   task body();
-    string seq_names[] = {"otp_ctrl_common_vseq",
-                          "otp_ctrl_dai_lock_vseq",
-                          "otp_ctrl_dai_errs_vseq",
-                          "otp_ctrl_partition_walk_vseq",
+    string seq_names[] = {
+                         // "otp_ctrl_dai_errs_vseq",
+                         // "otp_ctrl_partition_walk_vseq",
                           "otp_ctrl_smoke_vseq"};
 
     for (int i = 1; i <= num_trans; i++) begin
@@ -41,8 +40,23 @@ class otp_ctrl_stress_all_vseq extends otp_ctrl_base_vseq;
         common_vseq.common_seq_type = "intr_test";
       end
 
+      otp_ctrl_vseq.collect_used_addr = 0;
+      otp_ctrl_vseq.lc_prog_blocking = this.lc_prog_blocking;
+      otp_ctrl_vseq.digest_calculated = this.digest_calculated;
       otp_ctrl_vseq.start(p_sequencer);
+
+      this.lc_prog_blocking = otp_ctrl_vseq.lc_prog_blocking;
+      this.digest_calculated = otp_ctrl_vseq.digest_calculated;
     end
   endtask : body
+
+  virtual task post_start();
+      apply_reset();
+
+    // delay to avoid race condition when sending item and checking no item after reset occur
+    // at the same time
+    #1ps;
+    super.post_start();
+  endtask
 
 endclass

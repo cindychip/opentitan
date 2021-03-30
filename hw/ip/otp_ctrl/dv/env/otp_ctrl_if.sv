@@ -56,7 +56,7 @@ interface otp_ctrl_if(input clk_i, input rst_ni);
     lc_seed_hw_rd_en_i         = lc_ctrl_pkg::Off;
     lc_dft_en_i                = lc_ctrl_pkg::Off;
     lc_escalate_en_i           = lc_ctrl_pkg::Off;
-    lc_check_byp_en_i          = lc_ctrl_pkg::Off;
+    lc_check_byp_en_i          = lc_ctrl_pkg::On; //TODO: lc check error
     pwr_otp_init_i             = 0;
     // ast_pwr_seq is dummy in open sourced OTP memory
     otp_ast_pwr_seq_h_i        = $urandom();
@@ -72,6 +72,10 @@ interface otp_ctrl_if(input clk_i, input rst_ni);
 
   task automatic drive_lc_escalate_en(lc_ctrl_pkg::lc_tx_e val);
     lc_escalate_en_i = val;
+  endtask
+
+  task automatic drive_lc_bypass_en(lc_ctrl_pkg::lc_tx_e val);
+    lc_check_byp_en_i = val;
   endtask
 
   `define OTP_ASSERT_WO_LC_ESC(NAME, SEQ) \

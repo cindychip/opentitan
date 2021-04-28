@@ -12,6 +12,8 @@ class cip_base_env #(type CFG_T               = cip_base_env_cfg,
 
   tl_agent                                           m_tl_agents[string];
   tl_reg_adapter#(cip_tl_seq_item)                   m_tl_reg_adapters[string];
+  jtag_riscv_agent                                   m_jtag_riscv_agent;
+  jtag_riscv_reg_adapter                             m_jtag_riscv_reg_adapter;
   alert_esc_agent                                    m_alert_agent[string];
   push_pull_agent#(.DeviceDataWidth(EDN_DATA_WIDTH)) m_edn_pull_agent;
 
@@ -40,6 +42,14 @@ class cip_base_env #(type CFG_T               = cip_base_env_cfg,
                                         cfg.m_tl_agent_cfgs[i]);
       cfg.m_tl_agent_cfgs[i].en_cov = cfg.en_cov;
     end
+
+    // Create & configure jtag agent
+    m_jtag_riscv_agent = jtag_riscv_agent::type_id::create("m_jtag_riscv_agent", this);
+    m_jtag_riscv_reg_adapter = jtag_riscv_reg_adapter#()::type_id::create(
+                               "m_jtag_riscv_reg_adapter", this);
+    uvm_config_db#(jtag_riscv_agent_cfg)::set(this, "m_jtag_riscv_agent", "cfg",
+                                              cfg.m_jtag_riscv_agent_cfg);
+    cfg.m_jtag_riscv_agent_cfg.en_cov = cfg.en_cov;
 
     // Create & configure the alert agents.
     foreach(cfg.list_of_alerts[i]) begin
@@ -109,6 +119,9 @@ class cip_base_env #(type CFG_T               = cip_base_env_cfg,
         end
       end
     end
+
+    virtual_sequencer.jtag_riscv_sequencer_h = m_jtag_riscv_agent.sequencer;
+
     foreach(cfg.list_of_alerts[i]) begin
       if (cfg.m_alert_agent_cfg[cfg.list_of_alerts[i]].is_active) begin
         virtual_sequencer.alert_esc_sequencer_h[cfg.list_of_alerts[i]] =
@@ -126,11 +139,13 @@ class cip_base_env #(type CFG_T               = cip_base_env_cfg,
     super.end_of_elaboration_phase(phase);
     // Set the TL adapter / sequencer to the default_map.
     foreach (cfg.m_tl_agent_cfgs[i]) begin
-      if (cfg.m_tl_agent_cfgs[i].is_active) begin
-        cfg.ral_models[i].default_map.set_sequencer(m_tl_agents[i].sequencer, m_tl_reg_adapters[i]);
+      //if (cfg.m_tl_agent_cfgs[i].is_active) begin
+      //  cfg.ral_models[i].default_map.set_sequencer(m_tl_agents[i].sequencer, m_tl_reg_adapters[i]);
+      //end
+      if (cfg.m_jtag_riscv_agent_cfg.is_active) begin
+        cfg.ral_models[i].default_map.set_sequencer(m_jtag_riscv_agent.sequencer, m_jtag_riscv_reg_adapter);
       end
     end
   endfunction : end_of_elaboration_phase
 
 endclass
-

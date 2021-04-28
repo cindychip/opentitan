@@ -10,10 +10,11 @@ class cip_base_virtual_sequencer #(type CFG_T = cip_base_env_cfg,
   // similar to (ral, ral_models) and (m_tl_agent_cfg, m_tl_agent_cfgs)
   // if the block supports only one RAL, just use tl_sequencer_h
   // if there are multiple RALs, `tl_sequencer_h` is the default one for RAL with type `RAL_T`
-  tl_sequencer        tl_sequencer_h;
-  tl_sequencer        tl_sequencer_hs[string];
+  tl_sequencer         tl_sequencer_h;
+  tl_sequencer         tl_sequencer_hs[string];
+  jtag_riscv_sequencer jtag_riscv_sequencer_h;
 
-  alert_esc_sequencer alert_esc_sequencer_h[string];
+  alert_esc_sequencer  alert_esc_sequencer_h[string];
   push_pull_sequencer#(.DeviceDataWidth(EDN_DATA_WIDTH)) edn_pull_sequencer_h;
 
   `uvm_component_new

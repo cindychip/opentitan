@@ -143,7 +143,7 @@ class csr_hw_reset_seq extends csr_base_seq;
 
       compare_mask = get_mask_excl_fields(test_csrs[i], CsrExclInitCheck, CsrHwResetTest);
       csr_rd_check(.ptr           (test_csrs[i]),
-                   .blocking      (0),
+                   .blocking      (1),
                    .compare       (!external_checker),
                    .compare_vs_ral(1'b1),
                    .compare_mask  (compare_mask));
@@ -208,7 +208,7 @@ class csr_write_seq extends csr_base_seq;
                                            backdoor dist {0 :/ 7, 1 :/ 3};)
       end
 
-      csr_wr(.ptr(test_csrs[i]), .value(wdata), .blocking(0), .backdoor(backdoor));
+      csr_wr(.ptr(test_csrs[i]), .value(wdata), .blocking(1), .backdoor(0));
     end
   endtask
 

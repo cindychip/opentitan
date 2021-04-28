@@ -57,6 +57,7 @@ package jtag_riscv_agent_pkg;
   `include "jtag_riscv_monitor.sv"
   `include "jtag_riscv_sequencer.sv"
   `include "jtag_riscv_agent.sv"
+  `include "jtag_riscv_reg_adapter.sv"
   `include "jtag_riscv_seq_list.sv"
 
 endpackage: jtag_riscv_agent_pkg

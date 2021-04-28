@@ -25,6 +25,8 @@ class jtag_dmi_access_seq extends dv_base_seq #(
   virtual task body();
     bit [DMI_DATAW-1:0] rdata;
 
+    $display("send CSR sequence!");
+
     // Drive IR with DMI access
     send_dmi_req();
 

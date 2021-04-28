@@ -8,10 +8,11 @@ class cip_base_env_cfg #(type RAL_T = dv_base_reg_block) extends dv_base_env_cfg
   // if the block supports only one RAL, just use `m_tl_agent_cfg`
   // if there are multiple RALs, `m_tl_agent_cfg` is the default one for RAL with type `RAL_T`
   // for the other RAL, can get from ral_models[string] and agent cfg from m_tl_agent_cfgs[string]
-  tl_agent_cfg        m_tl_agent_cfg;
-  rand tl_agent_cfg   m_tl_agent_cfgs[string];
+  tl_agent_cfg         m_tl_agent_cfg;
+  rand tl_agent_cfg    m_tl_agent_cfgs[string];
+  jtag_riscv_agent_cfg m_jtag_riscv_agent_cfg;
 
-  alert_esc_agent_cfg m_alert_agent_cfg[string];
+  alert_esc_agent_cfg  m_alert_agent_cfg[string];
   push_pull_agent_cfg#(.DeviceDataWidth(EDN_DATA_WIDTH)) m_edn_pull_agent_cfg;
 
   // EDN clk freq setting, if EDN is present.
@@ -57,6 +58,7 @@ class cip_base_env_cfg #(type RAL_T = dv_base_reg_block) extends dv_base_env_cfg
       // to drop a_valid without a_ready
       // randomize `allow_a_valid_drop_wo_a_ready` to test TL device can support it
       m_tl_agent_cfgs[ral_name].allow_a_valid_drop_wo_a_ready = $urandom_range(0, 1);
+      //m_tl_agent_cfgs[ral_name].is_active = 0;
     end
 
     // Assign handle to the default `m_tl_agent_cfg` for default `RAL_T`
@@ -65,6 +67,9 @@ class cip_base_env_cfg #(type RAL_T = dv_base_reg_block) extends dv_base_env_cfg
       m_tl_agent_cfg = m_tl_agent_cfgs[RAL_T::type_name];
       `DV_CHECK_NE_FATAL(m_tl_agent_cfg, null)
     end
+
+    m_jtag_riscv_agent_cfg = jtag_riscv_agent_cfg::type_id::create("m_jtag_riscv_agent_cfg");
+    `DV_CHECK_RANDOMIZE_FATAL(m_jtag_riscv_agent_cfg)
 
     check_shadow_reg_alerts();
     if (list_of_alerts.size() > 0) begin

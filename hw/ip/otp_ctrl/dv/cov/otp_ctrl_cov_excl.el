@@ -88,6 +88,34 @@ INSTANCE: tb.dut.u_otp_ctrl_dai
 Fsm error_q "2961818352"
 ANNOTATION: "[UNR]: this error state is a terminal state"
 Transition FsmStateError->AccessError "7->5"
+CHECKSUM: "2423918326 938275392"
+INSTANCE: tb.dut.gen_partitions[2].gen_buffered.u_part_buf
+ANNOTATION: "[UNR]: HwCfg partition does not not have InitDescrSt."
+Condition 1 "1999344180" "(scrmbl_mtx_gnt_i && scrmbl_ready_i) 1 -1"
+CHECKSUM: "2423918326 2948134846"
+INSTANCE: tb.dut.gen_partitions[6].gen_lifecycle.u_part_buf
+ANNOTATION: "[UNR]: LC partition cannot be locked."
+Condition 15 "2704968129" "((dout_gate_q != Unlocked) || (access_i.read_lock != Unlocked)) 1 -1" (3 "10")
+ANNOTATION: "[UNR]: LC partition cannot be locked."
+Condition 15 "2704968129" "((dout_gate_q != Unlocked) || (access_i.read_lock != Unlocked)) 1 -1" (1 "00")
+ANNOTATION: "[UNR]: LC partition cannot be locked."
+Condition 14 "1525320899" "(((dout_gate_q != Unlocked) || (access_i.read_lock != Unlocked)) ? Locked : Unlocked) 1 -1" (1 "0")
+ANNOTATION: "[UNR]: LC partition cannot be locked."
+Condition 13 "521310057" "((dout_gate_q != Unlocked) || (access_i.write_lock != Unlocked)) 1 -1" (3 "10")
+ANNOTATION: "[UNR]: LC partition cannot be locked."
+Condition 13 "521310057" "((dout_gate_q != Unlocked) || (access_i.write_lock != Unlocked)) 1 -1" (1 "00")
+ANNOTATION: "[UNR]: LC partition does not have digest."
+Condition 10 "705391888" "((data_sel == ScrmblData) ? scrmbl_data_i : otp_rdata_i) 1 -1" (2 "1")
+ANNOTATION: "[UNR]: LC partition does not have digest."
+Condition 9 "184804254" "((base_sel == DigOffset) ? DigestOffset : 11'b11111001000) 1 -1" (2 "1")
+ANNOTATION: "[UNR]: LC partition does not have digest."
+Condition 12 "3749993138" "(((dout_gate_q != Unlocked) || (access_i.write_lock != Unlocked)) ? Locked : Unlocked) 1 -1" (1 "0")
 CHECKSUM: "3767637819"
 ANNOTATION: "[EXTERNAL] alert_sender is fully verified by FPV testbench."
 MODULE:prim_diff_decode
+CHECKSUM: "1713188235"
+ANNOTATION: "[TODO]: include this once support tlul ECC error cases."
+MODULE:tlul_err_resp
+CHECKSUM: "2966200294"
+ANNOTATION: "[EXTERNAL]: this module is verified in a separate testbench"
+MODULE:prim_lfsr

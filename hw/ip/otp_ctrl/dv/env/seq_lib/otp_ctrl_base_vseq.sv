@@ -74,6 +74,9 @@ class otp_ctrl_base_vseq extends cip_base_vseq #(
 
   // some registers won't set to default value until otp_init is done
   virtual task read_and_check_all_csrs_after_reset();
+    cfg.otp_ctrl_vif.drive_lc_escalate_en(lc_ctrl_pkg::Off);
+    cfg.mem_bkdr_util_h.clear_mem();
+    cfg.backdoor_clear_mem = 1;
     otp_pwr_init();
     super.read_and_check_all_csrs_after_reset();
   endtask

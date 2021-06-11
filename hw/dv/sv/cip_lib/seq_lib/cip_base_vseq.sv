@@ -110,30 +110,37 @@ class cip_base_vseq #(type RAL_T               = dv_base_reg_block,
     if (do_clear_all_interrupts) clear_all_interrupts();
   endtask
 
-  // The concurrent_deassert_resets knob is used for stress_all_with_rand_reset sequence, which
-  // will kill the child sequence immediately when dut reset is deasserted.
-  virtual task apply_reset(string kind = "HARD", bit concurrent_deassert_resets = 0);
+  virtual task apply_reset(string kind = "HARD");
     if (kind == "HARD") begin
-      if (!concurrent_deassert_resets) begin
-        // If DUT is connected to `edn_rst_ni`, assert resets with random delays
+      fork
+        if (cfg.has_edn) apply_edn_reset(kind);
+        super.apply_reset(kind);
+      join
+    end
+  endtask
+
+  // Used for stress_all_with_rand_reset sequence so it can kill the child sequence immediately
+  // when dut reset is deasserted.
+  virtual task apply_resets_and_deassert_concurrently(string kind = "HARD");
+    if (kind == "HARD") begin
+      if (!cfg.has_edn) begin
+        super.apply_resets_and_deassert_concurrently(kind);
+      end else begin
         fork
-          if (cfg.has_edn) apply_edn_reset(kind);
-          super.apply_reset(kind);
+          begin : isolation_fork
+            fork
+              if (cfg.has_edn) apply_edn_reset(kind);
+              super.apply_resets_and_deassert_concurrently(kind);
+            join_any
+            disable fork;
+            if (cfg.clk_rst_vifs.size() > 0) begin
+              foreach (cfg.clk_rst_vifs[i]) cfg.clk_rst_vifs[i].drive_rst_pin(1);
+            end else begin
+              cfg.clk_rst_vif.drive_rst_pin(1);
+            end
+            if (cfg.has_edn) cfg.edn_clk_rst_vif.drive_rst_pin(1);
+          end : isolation_fork
         join
-      end else if (cfg.has_edn) begin
-        fork begin // isolation_fork
-          fork
-            apply_edn_reset(kind);
-            super.apply_reset(kind);
-          join_any
-          disable fork;
-          if (cfg.clk_rst_vifs.size > 0) begin
-            foreach (cfg.clk_rst_vifs[i]) cfg.clk_rst_vifs[i].drive_rst_pin(1);
-          end else begin
-            cfg.clk_rst_vif.drive_rst_pin(1);
-          end
-          cfg.edn_clk_rst_vif.drive_rst_pin(1);
-        end join
       end
     end
   endtask
@@ -587,7 +594,7 @@ class cip_base_vseq #(type RAL_T               = dv_base_reg_block,
               cfg.clk_rst_vif.wait_clks(delay_to_reset);
               ongoing_reset = 1'b1;
               `uvm_info(`gfn, $sformatf("\nReset is issued for run %0d/%0d", i, num_times), UVM_LOW)
-              apply_reset("HARD", .concurrent_deassert_resets(1));
+              apply_resets_and_deassert_concurrently("HARD");
               ongoing_reset = 1'b0;
               do_read_and_check_all_csrs = 1'b1;
             end

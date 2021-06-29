@@ -37,6 +37,7 @@ class chip_stub_cpu_base_vseq extends chip_base_vseq;
     cfg.mem_bkdr_util_h[Otp].load_mem_from_file({cfg.sw_images[SwTypeOtp], ".vmem"});
     wait (cfg.rst_n_mon_vif.pins[0] === 1);
     cfg.clk_rst_vif.wait_clks(100);
+    //cfg.mem_bkdr_util_h[Otp].otp_write_lc_partition(lc_ctrl_state_pkg::LcStTestUnlocked0);
   endtask
 
   virtual task dut_init(string reset_kind = "HARD");
